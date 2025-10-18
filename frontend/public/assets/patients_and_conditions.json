@@ -1,0 +1,46 @@
+{
+    "patients": [
+        {
+            "id": 1,
+            "name": "Jordon Dubois",
+            "gender": "Male",
+            "age": 35,
+            "existing_condition": "Depression",
+            "img": "/assets/jordan.avif",
+            "video": "/assets/jordan.mp4",
+            "headshot": "/assets/jordan_300.avif",
+            "fhirFile": "/assets/jason_fhir.json",
+            "voice": "Algenib"
+        },
+        {
+            "id": 2,
+            "name": "Alex Sharma",
+            "gender": "Female",
+            "age": 63,
+            "existing_condition": "Diabetes",
+            "img": "/assets/alex.avif",
+            "video": "/assets/alex.mp4",
+            "headshot": "/assets/alex_300.avif",
+            "fhirFile": "/assets/alex_fhir.json",
+            "voice": "Gacrux"
+        },
+        {
+            "id": 3,
+            "name": "Sacha Silva",
+            "gender": "Female",
+            "age": 24,
+            "existing_condition": "Asthma",
+            "img": "/assets/sacha.avif",
+            "video": "/assets/sacha.mp4",
+            "headshot": "/assets/sacha_150.avif",
+            "fhirFile": "/assets/sacha_fhir.json",
+            "voice": "Callirrhoe"
+        }
+    ],
+    "conditions": [
+        { "name": "Flu", "description": "A common and contagious respiratory illness caused by a virus that can lead to fever, body aches, and fatigue." },
+        { "name": "Malaria", "description": "A serious disease spread by mosquitoes that causes recurring fevers and chills due to a parasite infecting red blood cells." },
+        { "name": "Migraine", "description": "A type of severe headache often accompanied by throbbing pain, sensitivity to light and sound, and sometimes nausea." },
+        { "name": "Serotonin Syndrome", "description": "A potentially dangerous reaction caused by too much serotonin in the brain, often due to certain medications, leading to symptoms like agitation, rapid heart rate, and confusion." }
+    ]
+}

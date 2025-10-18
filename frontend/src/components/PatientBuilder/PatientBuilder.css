@@ -1,0 +1,205 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#root {
+	display: flex;
+	justify-content: center;
+}
+
+.header2 {
+	font-size: 24px;
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+
+.lighttext {
+	font-size: 15px;
+}
+
+
+
+.patient-builder-container {
+	font-family: Arial, sans-serif;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	gap: 20px;
+	width: min-content;
+	height: min-content;
+}
+
+.patient-list {
+	display: flex;
+	gap: 20px;
+}
+
+.patient-list {
+	justify-content: space-between;
+}
+
+.selection-section {
+	margin-bottom: 30px;
+    flex-direction: column;
+	width: 958px;
+}
+
+.condition-list {
+	align-items: stretch;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 10px;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+}
+
+.condition-card {
+	display: grid;
+	grid-template-columns: 100px 1fr;
+	align-items: center;
+	padding: 0 30px;
+}
+
+.condition-card {
+	background: #fff;
+	border: 2px solid #ddd;
+	border-radius: 10px;
+	padding: 10px;
+	cursor: pointer;
+	transition: transform 0.2s ease, border-color 0.2s ease;
+	box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.patient-video-container {
+	position: relative;
+	cursor: pointer;
+	width: 300px;
+	height: 300px;
+	overflow: hidden;
+	border: 4px solid transparent;
+	border-radius: 12px;
+	transition: border-color 0.2s ease;
+	box-sizing: border-box;
+}
+
+.patient-video, .patient-img {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	object-fit: cover;
+	border-radius: 8px;
+	transition: opacity 0.4s ease-in-out;
+}
+
+.ehr-label {
+	position: absolute;
+	bottom: 15px;
+	right: 10px;
+	border-radius: 4px;
+	border: 1px solid #C8B3FD;
+	background: #E8DEF8;
+	padding: 0 5px;
+}
+
+.patient-video-container:hover {
+	border-color: #aaa;
+}
+
+.condition-card:hover, .ehr-label:hover {
+	transform: scale(1.05);
+	border-color: #aaa;
+}
+.patient-video-container.selected {
+	border-color: #D0BCFF;
+	box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+
+.condition-card.selected {
+	border: 4px solid #D0BCFF;
+	box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+
+.go-button {
+	background: #0078D7;
+	color: #fff;
+	border: none;
+	padding: 10px 20px;
+	border-radius: 5px;
+	cursor: pointer;
+	font-size: 16px;
+	transition: background 0.3s ease;
+}
+.go-button:disabled {
+	background: #aaa;
+	cursor: not-allowed;
+}
+.go-button:hover:not(:disabled) {
+	background: #005fa3;
+}
+.patient-info .category-label {
+    font-size: 12px;
+    font-weight: bold;
+}
+.patient-info .category-value {
+    font-size: 16px;
+    font-weight: normal;
+}
+
+.patient-info {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+.condition-card.disabled {
+    pointer-events: none;
+    opacity: 0.3;
+	transition: opacity 0.2s ease-in-out 0.1s;
+}
+
+.patient-info-right {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 10px;
+	width: min-content;
+}
+
+.patient-details {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 20px;
+	align-items: center;
+	text-align: center;
+}
+
+.json-popup-content {
+  max-width: 80vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  width: 800px;
+}
+
+.json-viewer-container {
+  flex-grow: 1;
+  overflow: auto;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  font-family: monospace;
+}

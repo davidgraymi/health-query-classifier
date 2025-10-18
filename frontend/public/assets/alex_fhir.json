@@ -1,0 +1,246 @@
+[
+  {
+    "resourceType": "Patient",
+    "id": "alex-sharma-63-female",
+    "meta": {
+      "profile": [
+        "http://hl7.org/fhir/R4/StructureDefinition/Patient"
+      ]
+    },
+    "text": {
+      "status": "generated",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Alex Sharma</b> (Female, 63)</p><p>Known Conditions: Diabetes</p></div>"
+    },
+    "identifier": [
+      {
+        "use": "usual",
+        "type": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+              "code": "MR",
+              "display": "Medical record number"
+            }
+          ]
+        },
+        "system": "http://example.org/patients",
+        "value": "PAT-2023-001"
+      }
+    ],
+    "name": [
+      {
+        "use": "official",
+        "family": "Sharma",
+        "given": [
+          "Alex"
+        ]
+      }
+    ],
+    "gender": "female",
+    "birthDate": "1962-01-15",
+    "deceasedBoolean": false
+  },
+  {
+    "resourceType": "Encounter",
+    "id": "encounter-diabetes-followup",
+    "meta": {
+      "profile": [
+        "http://hl7.org/fhir/R4/StructureDefinition/Encounter"
+      ]
+    },
+    "text": {
+      "status": "generated",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Diabetes Follow-up Visit</b> for Alex Sharma on 2024-03-10</p></div>"
+    },
+    "status": "finished",
+    "class": {
+      "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+      "code": "AMB",
+      "display": "Ambulatory"
+    },
+    "type": [
+      {
+        "coding": [
+          {
+            "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+            "code": "FLD",
+            "display": "Field"
+          }
+        ],
+        "text": "Follow-up visit for Diabetes"
+      }
+    ],
+    "subject": {
+      "reference": "Patient/alex-sharma-63-female",
+      "display": "Alex Sharma"
+    },
+    "period": {
+      "start": "2024-03-10T10:00:00Z",
+      "end": "2024-03-10T10:45:00Z"
+    },
+    "serviceProvider": {
+      "reference": "Organization/example-org",
+      "display": "Example Medical Center"
+    }
+  },
+  {
+    "resourceType": "Condition",
+    "id": "condition-diabetes-mellitus",
+    "meta": {
+      "profile": [
+        "http://hl7.org/fhir/R4/StructureDefinition/Condition"
+      ]
+    },
+    "text": {
+      "status": "generated",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Diabetes Mellitus, Type 2</b> for Alex Sharma, diagnosed 2020-05-20</p></div>"
+    },
+    "clinicalStatus": {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+          "code": "active",
+          "display": "Active"
+        }
+      ]
+    },
+    "verificationStatus": {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+          "code": "confirmed",
+          "display": "Confirmed"
+        }
+      ]
+    },
+    "category": [
+      {
+        "coding": [
+          {
+            "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+            "code": "problem-list-item",
+            "display": "Problem List Item"
+          }
+        ]
+      }
+    ],
+    "severity": {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/condition-severity",
+          "code": "24484000",
+          "display": "Moderate"
+        }
+      ]
+    },
+    "code": {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "44054006",
+          "display": "Diabetes mellitus"
+        }
+      ],
+      "text": "Diabetes Mellitus, Type 2"
+    },
+    "subject": {
+      "reference": "Patient/alex-sharma-63-female",
+      "display": "Alex Sharma"
+    },
+    "onsetDateTime": "2020-05-20"
+  },
+  {
+    "resourceType": "MedicationRequest",
+    "id": "medicationrequest-metformin",
+    "meta": {
+      "profile": [
+        "http://hl7.org/fhir/R4/StructureDefinition/MedicationRequest"
+      ]
+    },
+    "text": {
+      "status": "generated",
+      "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Metformin 500mg</b> for Alex Sharma, 1 tablet by mouth twice daily, ongoing</p></div>"
+    },
+    "status": "active",
+    "intent": "order",
+    "medicationCodeableConcept": {
+      "coding": [
+        {
+          "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+          "code": "6809",
+          "display": "Metformin"
+        }
+      ],
+      "text": "Metformin 500mg Tablet"
+    },
+    "subject": {
+      "reference": "Patient/alex-sharma-63-female",
+      "display": "Alex Sharma"
+    },
+    "encounter": {
+      "reference": "Encounter/encounter-diabetes-followup",
+      "display": "Diabetes Follow-up Visit"
+    },
+    "authoredOn": "2024-03-10T10:30:00Z",
+    "requester": {
+      "reference": "Practitioner/dr-smith",
+      "display": "Dr. Jane Smith"
+    },
+    "dosageInstruction": [
+      {
+        "sequence": 1,
+        "text": "One tablet by mouth twice daily",
+        "timing": {
+          "repeat": {
+            "frequency": 2,
+            "period": 1,
+            "periodUnit": "d"
+          }
+        },
+        "route": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v3-RouteOfAdministration",
+              "code": "PO",
+              "display": "Oral"
+            }
+          ]
+        },
+        "doseAndRate": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/dose-rate-type",
+                  "code": "ordered",
+                  "display": "Ordered"
+                }
+              ]
+            },
+            "doseQuantity": {
+              "value": 1,
+              "unit": "tablet",
+              "system": "http://unitsofmeasure.org",
+              "code": "{tablet}"
+            }
+          }
+        ]
+      }
+    ],
+    "dispenseRequest": {
+      "numberOfRepeatsAllowed": 3,
+      "quantity": {
+        "value": 60,
+        "unit": "tablet",
+        "system": "http://unitsofmeasure.org",
+        "code": "{tablet}"
+      },
+      "expectedSupplyDuration": {
+        "value": 30,
+        "unit": "days",
+        "system": "http://unitsofmeasure.org",
+        "code": "d"
+      }
+    }
+  }
+]

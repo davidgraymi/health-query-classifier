@@ -1,0 +1,8 @@
+flask
+gunicorn
+flask-cors
+requests
+google-auth
+diskcache
+pydub
+google-generativeai>=0.5.0

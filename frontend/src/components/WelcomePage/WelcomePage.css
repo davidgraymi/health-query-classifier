@@ -1,0 +1,144 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+body:has(.welcome) {
+    background-color: white;
+}
+
+.info-page-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    padding: 40px;
+    max-width: 1300px;
+    margin: auto;
+}
+
+.info-content {
+    flex: 1;
+    min-width: 500px;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    font-size: 18px;
+}
+
+.info-header {
+    margin-bottom: 10px;
+}
+
+.title-header {
+    font-family: 'Google Sans', sans-serif;
+    font-size: 32px;
+    font-weight: 500;
+    font-style: normal;
+}
+
+.welcome .medgemma-logo {
+    width: 130px;
+    align-self: flex-end;
+    margin-top: 10px;
+    margin-right: 10px;
+}
+
+.info-button {
+    background-color: #C2E7FF;
+}
+
+.info-disclaimer-text {
+    font-family: 'Google Sans', sans-serif;
+    color: #333;
+    line-height: 1.5;
+    margin: 0;
+    font-size: 14px;
+}
+
+.info-disclaimer-title {
+    border-radius: 14.272px;
+    border: 1.359px solid #F1E161;
+    background: #F1E161;
+    mix-blend-mode: multiply;
+    padding: 0 5px;
+}
+
+.graphics {
+    position: relative;
+    min-width: 250px;
+    max-width: 450px;
+    flex: 0.5;
+    aspect-ratio: 1.2 / 1;
+}
+
+@media (max-width: 900px) {
+    .info-page-container {
+        flex-direction: column;
+        padding: 20px;
+        margin: 10px;
+    }
+
+    .info-content {
+        max-width: 100%;
+        align-items: center;
+        text-align: center;
+    }
+
+    .info-button {
+        align-self: center;
+    }
+
+    .info-header {
+        text-align: center;
+    }
+
+    .title-header {
+        font-size: 36px;
+    }
+
+    .info-text {
+        font-size: 16px;
+    }
+    .graphics {
+        min-width: 200px;
+    }    
+}
+
+
+
+.graphics-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    width: 80%;
+}
+
+.graphics-bottom {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    z-index: 1;
+    opacity: 0;
+    animation: fadeIn 1s ease forwards;
+    width: 62%;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}

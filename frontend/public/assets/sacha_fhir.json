@@ -1,0 +1,266 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "sacha-silva-patient",
+        "identifier": [
+          {
+            "system": "http://example.org/mrn",
+            "value": "1234567"
+          },
+          {
+            "system": "http://hl7.org/fhir/sid/us-ssn",
+            "value": "999-88-7777"
+          }
+        ],
+        "name": [
+          {
+            "family": "Silva",
+            "given": [
+              "Sacha"
+            ]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1993-10-27",
+        "address": [
+          {
+            "line": [
+              "123 Main Street"
+            ],
+            "city": "Anytown",
+            "state": "CA",
+            "postalCode": "91234",
+            "country": "US"
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "555-123-4567",
+            "use": "home"
+          },
+          {
+            "system": "email",
+            "value": "sacha.silva@example.com",
+            "use": "home"
+          }
+        ]
+      },
+      "request": {
+        "method": "PUT",
+        "url": "Patient/sacha-silva-patient"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "asthma-condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "problem-list-item",
+                "display": "Problem List Item"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "195967001",
+              "display": "Asthma"
+            }
+          ],
+          "text": "Asthma"
+        },
+        "subject": {
+          "reference": "Patient/sacha-silva-patient",
+          "display": "Sacha Silva"
+        },
+        "onsetDateTime": "2010-05-15"
+      },
+      "request": {
+        "method": "PUT",
+        "url": "Condition/asthma-condition"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "asthma-encounter-1",
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB",
+          "display": "Ambulatory"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "308335008",
+                "display": "Patient encounter procedure"
+              }
+            ],
+            "text": "Asthma Follow-up"
+          }
+        ],
+        "subject": {
+          "reference": "Patient/sacha-silva-patient",
+          "display": "Sacha Silva"
+        },
+        "period": {
+          "start": "2023-08-10T10:00:00-07:00",
+          "end": "2023-08-10T10:30:00-07:00"
+        },
+        "reasonCode": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "266253002",
+                "display": "Asthma exacerbation"
+              }
+            ],
+            "text": "Asthma Exacerbation"
+          }
+        ]
+      },
+      "request": {
+        "method": "PUT",
+        "url": "Encounter/asthma-encounter-1"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "albuterol-mr",
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "207182",
+              "display": "Albuterol 90 mcg/actuation Metered Dose Inhaler"
+            }
+          ],
+          "text": "Albuterol Inhaler"
+        },
+        "subject": {
+          "reference": "Patient/sacha-silva-patient",
+          "display": "Sacha Silva"
+        },
+        "encounter": {
+          "reference": "Encounter/asthma-encounter-1",
+          "display": "Asthma Follow-up"
+        },
+        "authoredOn": "2023-08-10T10:30:00-07:00",
+        "requester": {
+          "reference": "Practitioner/dr-jane-doe",
+          "display": "Jane Doe, MD"
+        },
+        "dosageInstruction": [
+          {
+            "sequence": 1,
+            "text": "2 puffs every 4-6 hours as needed for wheezing",
+            "timing": {
+              "repeat": {
+                "frequency": 4,
+                "period": 1,
+                "periodUnit": "h"
+              }
+            },
+            "doseQuantity": {
+              "value": 2,
+              "unit": "puff",
+              "system": "http://unitsofmeasure.org",
+              "code": "{puff}"
+            },
+            "asNeededCodeableConcept": {
+              "coding": [
+                {
+                  "system": "http://snomed.info/sct",
+                  "code": "267036007",
+                  "display": "Wheezing"
+                }
+              ],
+              "text": "Wheezing"
+            }
+          }
+        ],
+        "dispenseRequest": {
+          "quantity": {
+            "value": 1,
+            "unit": "inhaler",
+            "system": "http://terminology.hl7.org/CodeSystem/v3-orderableDrugForm",
+            "code": "INH"
+          },
+          "expectedSupplyDuration": {
+            "value": 30,
+            "unit": "days",
+            "system": "http://unitsofmeasure.org",
+            "code": "d"
+          }
+        }
+      },
+      "request": {
+        "method": "PUT",
+        "url": "MedicationRequest/albuterol-mr"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Practitioner",
+        "id": "dr-jane-doe",
+        "name": [
+          {
+            "family": "Doe",
+            "given": [
+              "Jane"
+            ],
+            "prefix": [
+              "Dr."
+            ]
+          }
+        ],
+        "identifier": [
+          {
+            "system": "http://example.org/npi",
+            "value": "1234567890"
+          }
+        ]
+      },
+      "request": {
+        "method": "PUT",
+        "url": "Practitioner/dr-jane-doe"
+      }
+    }
+  ]
+}

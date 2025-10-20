@@ -10,12 +10,13 @@ from tqdm import tqdm
 from urllib.request import urlretrieve
 
 
+PUBMED_DATASET_BASE_URL = "https://ftp.ncbi.nlm.nih.gov/pubmed/baseline"
+
 PUBMED_FILE_LIMIT = 1
 
 
 def download_pubmed_xml(output_dir, num_files=1, year='25'):
     os.makedirs(output_dir, exist_ok=True)
-    base_url = f"https://ftp.ncbi.nlm.nih.gov/pubmed/baseline/"
 
     files = []
     for i in range(1, num_files + 1):
@@ -23,9 +24,7 @@ def download_pubmed_xml(output_dir, num_files=1, year='25'):
         filepath = os.path.join(output_dir, filename)
 
         if not os.path.exists(filepath):
-            print(f"Downloading {filename}...")
-
-            urlretrieve(base_url + filename, filepath)
+            urlretrieve(f"{PUBMED_DATASET_BASE_URL}/{filename}", filepath)
 
         files.append(filepath)
 

@@ -13,20 +13,13 @@
 # limitations under the License.
 
 # MedGemma endpoint
-import requests
-from auth import create_credentials, get_access_token_refresh_if_needed
-import os
 from cache import cache
+from transformers import pipeline
 
-_endpoint_url = os.environ.get('GCP_MEDGEMMA_ENDPOINT')
+pipe = pipeline("text-generation", model="google/medgemma-4b-it")
 
-# Create credentials
-secret_key_json = os.environ.get('GCP_MEDGEMMA_SERVICE_ACCOUNT_KEY')
-medgemma_credentials = create_credentials(secret_key_json)
-
-# https://cloud.google.com/vertex-ai/docs/reference/rest/v1beta1/projects.locations.endpoints.chat/completions
 @cache.memoize()
-def medgemma_get_text_response(
+def medgemma_generate(
     messages: list,
     temperature: float = 0.1,
     max_tokens: int = 4096,
@@ -38,35 +31,14 @@ def medgemma_get_text_response(
     presence_penalty: float | None = None,
     model: str="tgi"
 ):
-    """
-    Makes a chat completion request to the configured LLM API (OpenAI-compatible).
-    """
-    headers = {
-        "Authorization": f"Bearer {get_access_token_refresh_if_needed(medgemma_credentials)}",
-        "Content-Type": "application/json",
-    }
-
-    # Based on the openai format
-    payload = {
-                "messages": messages,
-                "max_tokens": max_tokens
-              }
-
-
-    if temperature is not None: payload["temperature"] = temperature
-    if top_p is not None: payload["top_p"] = top_p
-    if seed is not None: payload["seed"] = seed
-    if stop is not None: payload["stop"] = stop
-    if frequency_penalty is not None: payload["frequency_penalty"] = frequency_penalty
-    if presence_penalty is not None: payload["presence_penalty"] = presence_penalty
-
-
-    response = requests.post(_endpoint_url, headers=headers, json=payload, stream=stream, timeout=60)
-    try:
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-    except requests.exceptions.JSONDecodeError:
-        # Log the problematic response for easier debugging in the future.
-        print(f"Error: Failed to decode JSON from MedGemma. Status: {response.status_code}, Response: {response.text}")
-        # Re-raise the exception so the caller knows something went wrong.
-        raise
+    return pipe(
+        messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        stream=stream,
+        top_p=top_p,
+        seed=seed,
+        stop=stop,
+        frequency_penalty=frequency_penalty,
+        presence_penalty=presence_penalty
+    )

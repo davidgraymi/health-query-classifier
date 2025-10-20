@@ -17,116 +17,15 @@ import re
 import os
 import base64
 
-from gemini import gemini_get_text_response
-from medgemma import medgemma_get_text_response
-from gemini_tts import synthesize_gemini_tts
-
-INTERVIEWER_VOICE = "Aoede"
-
-def read_symptoms_json():
-    # Load the list of symptoms for each condition from a JSON file
-    with open("symptoms.json", 'r') as f:
-        return json.load(f)
-
-def read_patient_and_conditions_json():
-    # Load all patient and condition data from the frontend assets
-    with open(os.path.join(os.environ.get("FRONTEND_BUILD", "frontend/build"), "assets", "patients_and_conditions.json"), 'r') as f:
-        return json.load(f)
-
-def get_patient(patient_name):
-    """Helper function to locate a patient record by name. Raises StopIteration if not found."""
-    return next(p for p in PATIENTS if p["name"] == patient_name)
-
-def read_fhir_json(patient):
-    # Load the FHIR (EHR) JSON file for a given patient
-    with open(os.path.join(os.environ.get("FRONTEND_BUILD", "frontend/build"), patient["fhirFile"].lstrip("/")), 'r') as f:
-        return json.load(f)
-
-def get_ehr_summary_per_patient(patient_name):
-    # Returns a concise EHR summary for the patient, using LLM if not already cached
-    patient = get_patient(patient_name)
-    if patient.get("ehr_summary"):
-        return patient["ehr_summary"]
-    # Use MedGemma to summarize the EHR for the patient
-    ehr_summary = medgemma_get_text_response([
-        {
-            "role": "system",
-            "content": [
-                {
-                    "type": "text",
-                    "text": f"""You are a medical assistant summarizing the EHR (FHIR) records for the patient {patient_name}.
-                    Provide a concise summary of the patient's medical history, including any existing conditions, medications, and relevant past treatments.
-                    Do not include personal opinions or assumptions, only factual information."""
-                }
-            ]
-        },
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": json.dumps(read_fhir_json(patient))
-                }
-            ]
-        }
-    ])
-    patient["ehr_summary"] = ehr_summary
-    return ehr_summary
-
-PATIENTS = read_patient_and_conditions_json()["patients"]
-SYMPTOMS = read_symptoms_json()
+from medgemma import medgemma_generate
    
-def patient_roleplay_instructions(patient_name, condition_name, previous_answers):
-    """
-    Generates structured instructions for the LLM to roleplay as a patient, including persona, scenario, and symptom logic.
-    """
-    # This assumes SYMPTOMS is a globally available dictionary as in the user's example
-    patient = get_patient(patient_name)
-    symptoms = "\n".join(SYMPTOMS[condition_name])
-
-    return f"""
-        SYSTEM INSTRUCTION: Before the interview begins, silently review the optional symptoms and decide which ones you have.
-
-        ### Your Persona ###
-        - **Name:** {patient_name}
-        - **Age:** {patient["age"]}
-        - **Gender:** {patient["gender"]}
-        - **Your Role:** You are to act as this patient. Behave naturally and realistically.
-
-        ### Scenario ###
-        You are at home, participating in a remote pre-visit interview with a clinical assistant. You recently booked an appointment with your doctor because you've been feeling unwell. You are now answering the assistant's questions about your symptoms.
-
-        ### Your Medical History ###
-        You have a known history of **{patient["existing_condition"]}**. You should mention this if asked about your medical history, but you do not know if it is related to your current problem.
-
-        ### Your Current Symptoms ###
-        This is how you have been feeling. Base all your answers on these facts. Do not invent new symptoms.
-        ---
-        {symptoms}
-        ---
-
-        ### Critical Rules of Roleplay ###
-        - **Handle Optional Symptoms:** Your symptom list may contain optional symptoms (e.g., "I might have..."). Before the interview starts, you MUST silently decide 'yes' or 'no' for each optional symptom. A 50% chance for each is a good approach. Remember your choices and be consistent throughout the entire interview.
-        - **Act as the Patient:** Your entire response must be ONLY what the patient would say. Do not add external comments, notes, or clarifications (e.g., do not write "[I am now describing the headache]").
-        - **No Guessing:** You DO NOT know your diagnosis or the name of your condition. Do not guess or speculate about it.
-        - **Answer Only What Is Asked:** Do not volunteer your entire list of symptoms at once. Respond naturally to the specific question asked by the interviewer.
-
-        ### Your previous health history ###
-        {patient["ehr_summary"]}
-
-        ### Your previous answers ###
-        ---
-        {previous_answers}
-        ---
-    """
-
 def interviewer_roleplay_instructions(patient_name):
     # Returns detailed instructions for the LLM to roleplay as the interviewer/clinical assistant
     return f"""
         SYSTEM INSTRUCTION: Always think silently before responding.
 
         ### Persona & Objective ###
-        You are a clinical assistant. Your objective is to interview a patient, {patient_name.split(" ")[0]}, and build a comprehensive and detailed report for their PCP.
+        You are a clinical assistant. Your objective is to interview a patient, and build a comprehensive and detailed report for their PCP.
 
         ### Critical Rules ###
         - **No Assessments:** You are NOT authorized to provide medical advice, diagnoses, or express any form of assessment to the patient.
@@ -135,7 +34,7 @@ def interviewer_roleplay_instructions(patient_name):
         - **Question Limit:** You have a maximum of 20 questions.
 
         ### Interview Strategy ###
-        - **Clinical Reasoning:** Based on the patient's responses and EHR, actively consider potential diagnoses.
+        - **Clinical Reasoning:** Based on the patient's responses, actively consider potential diagnoses.
         - **Differentiate:** Formulate your questions strategically to help differentiate between these possibilities.
         - **Probe Critical Clues:** When a patient's answer reveals a high-yield clue (e.g., recent travel, a key symptom like rapid breathing), ask one or two immediate follow-up questions to explore that clue in detail before moving to a new line of questioning.
         - **Exhaustive Inquiry:** Your goal is to be thorough. Do not end the interview early. Use your full allowance of questions to explore the severity, character, timing, and context of all reported symptoms.
@@ -148,7 +47,7 @@ def interviewer_roleplay_instructions(patient_name):
         EHR RECORD END
 
         ### Procedure ###
-        1.  **Start Interview:** Begin the conversation with this exact opening: "Thank you for booking an appointment with your primary doctor. I am an assistant here to ask a few questions to help your doctor prepare for your visit. To start, what is your main concern today?"
+        1.  **Start Interview:** Begin the conversation with this exact opening: "Hello. I am an assistant here to ask a few questions to help your doctor prepare for your visit. To start, what is your main concern today?"
         2.  **Conduct Interview:** Proceed with your questioning, following all rules and strategies above.
         3.  **End Interview:** You MUST continue the interview until you have asked 20 questions OR the patient is unable to provide more information. When the interview is complete, you MUST conclude by printing this exact phrase: "Thank you for answering my questions. I have everything needed to prepare a report for your visit. End interview."
     """
@@ -247,7 +146,7 @@ Now, generate the complete and updated medical report based on all system and us
         }
     ]
 
-    report = medgemma_get_text_response(messages)
+    report = medgemma_generate(messages)
     cleaned_report = re.sub(r'<unused94>.*?</unused95>', '', report, flags=re.DOTALL)
     cleaned_report = cleaned_report.strip()
 
@@ -265,10 +164,6 @@ def stream_interview(patient_name, condition_name):
     print(f"Starting interview simulation for patient: {patient_name}, condition: {condition_name}")
     # Prepare roleplay instructions and initial dialog (using existing helper functions)
     interviewer_instructions = interviewer_roleplay_instructions(patient_name)
-    
-    # Determine voices for TTS
-    patient = get_patient(patient_name)
-    patient_voice = patient["voice"]
     
     dialog = [
         {
@@ -296,7 +191,7 @@ def stream_interview(patient_name, condition_name):
     number_of_questions_limit = 30
     for i in range(number_of_questions_limit):
         # Get the next interviewer question from MedGemma
-        interviewer_question_text = medgemma_get_text_response(
+        interviewer_question_text = medgemma_generate(
             messages=dialog,
             temperature=0.1,
             max_tokens=2048,

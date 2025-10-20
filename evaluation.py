@@ -13,8 +13,7 @@
 # limitations under the License.
 
 import re
-from medgemma import medgemma_get_text_response
-
+from medgemma import medgemma_generate
 
 def evaluation_prompt(defacto_condition):
     # Returns a detailed prompt for the LLM to evaluate a pre-visit report for a specific condition
@@ -42,7 +41,7 @@ REPORT TEMPLATE END
 
 def evaluate_report(report, condition):
     """Evaluate the pre-visit report based on the condition using MedGemma LLM."""
-    evaluation_text = medgemma_get_text_response([
+    evaluation_text = medgemma_generate([
         {
             "role": "system",
             "content": [

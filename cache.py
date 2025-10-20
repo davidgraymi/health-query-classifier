@@ -19,7 +19,7 @@ import tempfile
 import zipfile
 import logging
 
-cache = Cache(os.environ.get("CACHE_DIR", "/cache"))
+cache = Cache(os.environ.get("CACHE_DIR", "cache"))
 # Print cache statistics after loading
 try:
     item_count = len(cache)
@@ -32,7 +32,7 @@ def create_cache_zip():
     temp_dir = tempfile.gettempdir()
     base_name = os.path.join(temp_dir, "cache_archive") # A more descriptive name
     archive_path = base_name + ".zip"
-    cache_directory = os.environ.get("CACHE_DIR", "/cache")
+    cache_directory = os.environ.get("CACHE_DIR", "cache")
     
     if not os.path.isdir(cache_directory):
         logging.error(f"Cache directory not found at {cache_directory}")

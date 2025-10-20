@@ -38,6 +38,8 @@ def download_pubmed_xml(output_dir, num_files=1, year='25'):
     total_dataset_size = get_pubmed_dataset_size()
 
     files = []
+    pbar = tqdm(total=total_dataset_size, desc=f"Downloading {num_files}/{total_dataset_size} files in PubMed dataset")
+
     for i in range(1, num_files + 1):
         filename = f"pubmed{year}n{i:04d}.xml.gz"
         filepath = os.path.join(output_dir, filename)
@@ -45,7 +47,11 @@ def download_pubmed_xml(output_dir, num_files=1, year='25'):
         if not os.path.exists(filepath):
             urlretrieve(f"{PUBMED_DATASET_BASE_URL}/{filename}", filepath)
 
+        pbar.update(1)
+
         files.append(filepath)
+
+    pbar.close()
 
     return files
 

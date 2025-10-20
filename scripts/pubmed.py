@@ -3,11 +3,12 @@
 import os
 import gzip
 import json
+import re
 import subprocess
 import xml.etree.ElementTree as ET
 
 from tqdm import tqdm
-from urllib.request import urlretrieve
+from urllib.request import urlopen, urlretrieve
 
 
 PUBMED_DATASET_BASE_URL = "https://ftp.ncbi.nlm.nih.gov/pubmed/baseline"
@@ -15,8 +16,26 @@ PUBMED_DATASET_BASE_URL = "https://ftp.ncbi.nlm.nih.gov/pubmed/baseline"
 PUBMED_FILE_LIMIT = 1
 
 
+def get_pubmed_dataset_size():
+    try:
+        with urlopen(PUBMED_DATASET_BASE_URL) as response:
+            html = response.read().decode("utf-8")
+
+            files = re.findall(r"(pubmed\d+n\d+)\.xml\.gz(?!\.)", html)
+            unique_files = set(files)
+
+            return len(unique_files)
+
+    except Exception as e:
+        print(f"Unable to count PubMed files: {e}")
+
+        return 0
+
+
 def download_pubmed_xml(output_dir, num_files=1, year='25'):
     os.makedirs(output_dir, exist_ok=True)
+
+    total_dataset_size = get_pubmed_dataset_size()
 
     files = []
     for i in range(1, num_files + 1):

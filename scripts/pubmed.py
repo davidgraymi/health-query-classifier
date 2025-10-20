@@ -10,6 +10,9 @@ from tqdm import tqdm
 from urllib.request import urlretrieve
 
 
+PUBMED_FILE_LIMIT = 1
+
+
 def download_pubmed_xml(output_dir, num_files=1, year='25'):
     os.makedirs(output_dir, exist_ok=True)
     base_url = f"https://ftp.ncbi.nlm.nih.gov/pubmed/baseline/"
@@ -91,14 +94,14 @@ def build_index(input_file, index_dir, cmd_generator=build_index_cmd):
     subprocess.run(cmd, check=True)
 
 
-def main(base_data_dir="data", base_index_dir="indexes"):
+def main(base_data_dir="data", base_index_dir="indexes", num_files=1):
     corpus_jsonl = os.path.join(base_data_dir, "pubmed", "corpus.jsonl")
     index_dir = os.path.join(base_index_dir, "pubmed")
 
-    download_pubmed(corpus_jsonl)
+    download_pubmed(corpus_jsonl, num_files=num_files)
 
     build_index(corpus_jsonl, index_dir)
 
 
 if __name__ == "__main__":
-    main()
+    main(num_files=PUBMED_FILE_LIMIT)

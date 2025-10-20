@@ -32,11 +32,16 @@ def main():
 
             for i, hit in enumerate(hits, 1):
                 doc = searcher.doc(hit.docid)
-                raw = json.loads(doc.raw())
-                contents = raw.get('contents', '')[:200]
 
-                print(f"{i}. PMID {hit.docid} (score: {hit.score:.4f})")
-                print(f"   {contents}...\n")
+                raw = json.loads(doc.raw())
+
+                title = raw.get('title', '')
+                contents = raw.get('contents', '')
+
+                abstract = contents[len(title):] if contents.startswith(title) else contents
+
+                print(f"{i}. PMID {hit.docid} \"{title}\" (score: {hit.score:.4f})")
+                print(f"   {abstract[:120]}...\n")
 
         except EOFError:
             print("\nBye!")

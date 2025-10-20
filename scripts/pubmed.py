@@ -51,6 +51,7 @@ def parse_pubmed_to_jsonl(xml_files, output_jsonl):
 
                         doc = {
                             'id': pmid_elem.text,
+                            'title': title,
                             'contents': f"{title} {abstract}".strip()
                         }
                         out.write(json.dumps(doc) + '\n')

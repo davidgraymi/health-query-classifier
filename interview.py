@@ -19,8 +19,9 @@ import base64
 
 from medgemma import medgemma_generate
    
-def interviewer_roleplay_instructions(patient_name):
+def interviewer_roleplay_instructions():
     # Returns detailed instructions for the LLM to roleplay as the interviewer/clinical assistant
+
     return f"""
         SYSTEM INSTRUCTION: Always think silently before responding.
 
@@ -40,30 +41,23 @@ def interviewer_roleplay_instructions(patient_name):
         - **Exhaustive Inquiry:** Your goal is to be thorough. Do not end the interview early. Use your full allowance of questions to explore the severity, character, timing, and context of all reported symptoms.
         - **Fact-Finding:** Focus exclusively on gathering specific, objective information.
 
-        ### Context: Patient EHR ###
-        You MUST use the following EHR summary to inform and adapt your questioning. Do not ask for information already present here unless you need to clarify it.
-        EHR RECORD START
-        {get_ehr_summary_per_patient(patient_name)}
-        EHR RECORD END
-
         ### Procedure ###
         1.  **Start Interview:** Begin the conversation with this exact opening: "Hello. I am an assistant here to ask a few questions to help your doctor prepare for your visit. To start, what is your main concern today?"
         2.  **Conduct Interview:** Proceed with your questioning, following all rules and strategies above.
         3.  **End Interview:** You MUST continue the interview until you have asked 20 questions OR the patient is unable to provide more information. When the interview is complete, you MUST conclude by printing this exact phrase: "Thank you for answering my questions. I have everything needed to prepare a report for your visit. End interview."
     """
 
-def report_writer_instructions(patient_name: str) -> str:
+def report_writer_instructions() -> str:
     """
     Generates the system prompt with clear instructions, role, and constraints for the LLM.
     """
-    ehr_summary = get_ehr_summary_per_patient(patient_name)
 
     return f"""<role>
 You are a highly skilled medical assistant with expertise in clinical documentation.
 </role>
 
 <task>
-Your task is to generate a concise yet clinically comprehensive medical intake report for a Primary Care Physician (PCP). This report will be based on a patient interview and their Electronic Health Record (EHR).
+Your task is to generate a concise yet clinically comprehensive medical intake report for a Primary Care Physician (PCP). This report will be based on a patient interview.
 </task>
 
 <guiding_principles>
@@ -76,38 +70,32 @@ To ensure the report is both brief and useful, you MUST adhere to the following 
 2.  **Principle of Clinical Relevance (What is "Critical Information")**:
     * **Prioritize the HPI**: The History of Present Illness is the most important section. Include key details like onset, duration, quality of symptoms, severity, timing, and modifying factors.
     * **Include "Pertinent Negatives"**: This is critical. You MUST include symptoms the patient **denies** if they are relevant to the chief complaint. For example, if the chief complaint is a cough, denying "fever" or "shortness of breath" is critical information and must be included in the report.
-    * **Filter History**: Only include historical EHR data that could reasonably be related to the patient's current complaint. For a cough, a history of asthma or smoking is relevant; a past appendectomy is likely not.
+    * **Filter History**: Only include historical data that could reasonably be related to the patient's current complaint. For a cough, a history of asthma or smoking is relevant; a past appendectomy is likely not.
 </guiding_principles>
 
 <instructions>
-1.  **Primary Objective**: Synthesize the interview and EHR into a clear, organized report, strictly following the <guiding_principles>.
+1.  **Primary Objective**: Synthesize the interview into a clear, organized report, strictly following the <guiding_principles>.
 2.  **Content Focus**:
     * **Main Concern**: State the patient's chief complaint.
     * **Symptoms**: Detail the History of Present Illness, including pertinent negatives.
-    * **Relevant History**: Include only relevant information from the EHR.
+    * **Relevant History**: Include only relevant historical information.
 3.  **Constraints**:
     * **Factual Information Only**: Report only the facts. No assumptions.
     * **No Diagnosis or Assessment**: Do not provide a diagnosis.
 </instructions>
-
-<ehr_data>
-<ehr_record_start>
-{ehr_summary}
-<ehr_record_end>
-</ehr_data>
 
 <output_format>
 The final output MUST be ONLY the full, updated Markdown medical report.
 DO NOT include any introductory phrases, explanations, or any text other than the report itself.
 </output_format>"""
 
-def write_report(patient_name: str, interview_text: str, existing_report: str = None) -> str:
+def write_report(interview_text: str, existing_report: str = None) -> str:
     """
     Constructs the full prompt, sends it to the LLM, and processes the response.
     This function handles both the initial creation and subsequent updates of a report.
     """
     # Generate the detailed system instructions
-    instructions = report_writer_instructions(patient_name)
+    instructions = report_writer_instructions()
 
     # If no existing report is provided, load a default template from a string.
     if not existing_report:
@@ -157,124 +145,3 @@ Now, generate the complete and updated medical report based on all system and us
         cleaned_report = match.group(1)
 
     return cleaned_report.strip()
-
-
-
-def stream_interview(patient_name, condition_name):
-    print(f"Starting interview simulation for patient: {patient_name}, condition: {condition_name}")
-    # Prepare roleplay instructions and initial dialog (using existing helper functions)
-    interviewer_instructions = interviewer_roleplay_instructions(patient_name)
-    
-    dialog = [
-        {
-            "role": "system",
-            "content": [
-                {
-                    "type": "text",
-                    "text": interviewer_instructions
-                }
-            ]
-        },
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": "start interview"
-                }
-            ]
-        }
-    ]
-    
-    write_report_text = ""
-    full_interview_q_a = ""
-    number_of_questions_limit = 30
-    for i in range(number_of_questions_limit):
-        # Get the next interviewer question from MedGemma
-        interviewer_question_text = medgemma_generate(
-            messages=dialog,
-            temperature=0.1,
-            max_tokens=2048,
-            stream=False
-        )
-        # Process optional "thinking" text (if present in the LLM output)
-        thinking_search = re.search('<unused94>(.+?)<unused95>', interviewer_question_text, re.DOTALL)
-        if thinking_search:
-            thinking_text = thinking_search.group(1)
-            interviewer_question_text = interviewer_question_text.replace(f'<unused94>{thinking_text}<unused95>', "")
-            if i == 0:
-                # Only yield the "thinking" summary for the first question
-                thinking_text = gemini_get_text_response(
-                    f"""Provide a summary of up to 100 words containing only the reasoning and planning from this text,
-                    do not include instructions, use first person: {thinking_text}""")
-                yield json.dumps({
-                        "speaker": "interviewer thinking",
-                    "text": thinking_text
-                })
-
-        # Clean up the text for TTS and display
-        clean_interviewer_text = interviewer_question_text.replace("End interview.", "").strip()
-
-        # Generate audio for the interviewer's question using Gemini TTS
-        audio_data, mime_type = synthesize_gemini_tts(f"Speak in a slightly upbeat and brisk manner, as a friendly clinician: {clean_interviewer_text}", INTERVIEWER_VOICE)
-        audio_b64 = None
-        if audio_data and mime_type:
-            audio_b64 = f"data:{mime_type};base64,{base64.b64encode(audio_data).decode('utf-8')}"
-
-        # Yield interviewer message (text and audio)
-        yield json.dumps({
-            "speaker": "interviewer",
-            "text": clean_interviewer_text,
-            "audio": audio_b64
-        })
-        dialog.append({
-            "role": "assistant",
-            "content": [{
-                "type": "text",
-                "text": interviewer_question_text
-            }]
-        })
-        if "End interview" in interviewer_question_text:
-            # End the interview loop if the LLM signals completion
-            break
-
-        # Get the patient's response from Gemini (roleplay LLM)
-        patient_response_text = gemini_get_text_response(f"""
-        {patient_roleplay_instructions(patient_name, condition_name, full_interview_q_a)}\n\n
-        Question: {interviewer_question_text}""")
-
-        # Generate audio for the patient's response
-        audio_data, mime_type = synthesize_gemini_tts(f"Say this in faster speed, using a sick tone: {patient_response_text}", patient_voice)
-        audio_b64 = None
-        if audio_data and mime_type:
-            audio_b64 = f"data:{mime_type};base64,{base64.b64encode(audio_data).decode('utf-8')}"
-
-        # Yield patient message (text and audio)
-        yield json.dumps({
-            "speaker": "patient",
-            "text": patient_response_text,
-            "audio": audio_b64
-        })
-        dialog.append({
-            "role": "user",
-            "content": [{
-                "type": "text",
-                "text": patient_response_text
-            }]
-        })
-        # Track the full Q&A for context in future LLM calls
-        most_recent_q_a = f"Q: {interviewer_question_text}\nA: {patient_response_text}\n"
-        full_interview_q_a_with_new_q_a = "PREVIOUS Q&A:\n" + full_interview_q_a + "\nNEW Q&A:\n" + most_recent_q_a
-        # Update the report after each Q&A
-        write_report_text = write_report(patient_name, full_interview_q_a_with_new_q_a, write_report_text)
-        full_interview_q_a += most_recent_q_a
-        yield json.dumps({
-            "speaker": "report",
-            "text": write_report_text
-        })
-
-    print(f"""Interview simulation completed for patient: {patient_name}, condition: {condition_name}.
-          Patient profile used:
-          {patient_roleplay_instructions(patient_name, condition_name, full_interview_q_a)}""")
-    # Add this at the end to signal end of stream
-    yield json.dumps({"event": "end"})

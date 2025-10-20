@@ -12,15 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Build React app
-FROM node:24-slim AS frontend-build
-WORKDIR /app/frontend
-# Upgrade npm to the desired version
-RUN npm install -g npm@11.4.x
-COPY frontend/ ./
-RUN npm install
-RUN npm run build
-
 # Python backend
 FROM python:3.10-slim
 WORKDIR /app
@@ -34,12 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy Flask app
 COPY *.py ./
-COPY symptoms.json ./
 COPY report_template.txt ./
-
-# Copy built React app
-COPY --from=frontend-build /app/frontend/build ./frontend/build
-ENV FRONTEND_BUILD=/app/frontend/build
 
 # Create cache directory and set permissions, then assign the env variable
 RUN mkdir -p /cache && chmod 777 /cache
@@ -54,5 +40,4 @@ RUN if [ -f /tmp/cache_archive.zip ]; then \
       chmod -R 777 /cache; \
     fi
 
-EXPOSE 7860
-CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app", "--threads", "4", "--timeout", "300"]
+CMD ["python3", "main.py"]

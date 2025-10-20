@@ -23,7 +23,6 @@ def medgemma_generate(
     messages: list,
     temperature: float = 0.1,
     max_tokens: int = 4096,
-    stream: bool = False,
     top_p: float | None = None,
     seed: int | None = None,
     stop: list[str] | str | None = None,
@@ -31,14 +30,19 @@ def medgemma_generate(
     presence_penalty: float | None = None,
     model: str="tgi"
 ):
-    return pipe(
+    """
+    Makes a chat completion request to local medgemma.
+    """
+
+    response = pipe(
         messages,
         temperature=temperature,
-        max_tokens=max_tokens,
-        stream=stream,
+        max_new_tokens=max_tokens,
         top_p=top_p,
         seed=seed,
         stop=stop,
         frequency_penalty=frequency_penalty,
         presence_penalty=presence_penalty
     )
+    content = response[0]["generated_text"][-1]["content"]
+    return content

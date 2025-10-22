@@ -1,0 +1,10 @@
+datasets
+pyarrow
+jsonlines
+tqdm
+rank-bm25
+faiss-cpu
+sentence-transformers
+numpy
+scipy
+scikit-learn

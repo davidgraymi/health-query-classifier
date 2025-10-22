@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
 
-# Optional FAISS (fallback to NumPy if not available)
+
 try:
     import faiss  # type: ignore
     _HAS_FAISS = True
@@ -19,10 +19,9 @@ def _chunks(lst, n):
 
 class DenseIndex:
     def __init__(self, docs, model_name="sentence-transformers/all-MiniLM-L6-v2",
-                 batch_size=16):  # conservative batch size on macOS
+                 batch_size=16):  
         self.docs = docs
 
-        # Force CPU + keep threads low to avoid macOS segfaults
         torch.set_num_threads(1)
         self.model = SentenceTransformer(model_name, device="cpu")
 

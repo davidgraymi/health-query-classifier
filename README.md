@@ -45,7 +45,7 @@ At the conclusion of the demo, you can view an evaluation of the pre-visit repor
 
 3.  **Install dependencies**
     ```bash
-    pip install -r requirements.txt
+    pip install -r requirements-gemma.txt
     ```
 
 ### Execution

@@ -2,7 +2,6 @@ import re
 
 from medgemma import medgemma_generate
 from interview import interviewer_roleplay_instructions, write_report
-from cache import create_cache_zip
 
 def start_interview():
     print("\n************************************************************\n" +

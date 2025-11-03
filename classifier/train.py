@@ -1,14 +1,15 @@
 from sentence_transformers import SentenceTransformer
-from setfit import SetFitModel
+from setfit import SetFitModel, Trainer, TrainingArguments, sample_dataset
 from head import ClassifierHead
 import os
 import pandas as pd
 from visualize import visualize_dataset
+from sklearn.model_selection import train_test_split
 
 SYNAPSE_DATASET_URL = "https://figshare.com/ndownloader/files/57688621"
 MODEL_NAME = "sentence-transformers/embeddinggemma-300m-medical"
 
-def get_model():
+def get_model(num_classes: int):
     try:
         model_body = SentenceTransformer(
             MODEL_NAME,
@@ -24,7 +25,7 @@ def get_model():
             },
             default_prompt_name='classification',
         )
-        model_head = ClassifierHead(5)
+        model_head = ClassifierHead(num_classes)
         model = SetFitModel(model_body, model_head)
 
     except Exception as e:
@@ -65,14 +66,49 @@ def get_dataset(base_data_dir="data") -> pd.DataFrame:
 
     return df
 
-def transform_to_nlp_classification(row):
-    row['Symptoms'] = f"{row['Symptoms']} {row['Gender']} {row['Age']} {row['Duration']}"
-    return row
+def preprocess(df: pd.DataFrame) -> pd.DataFrame:
+    df['Symptoms'] = (
+        df['Symptoms'].astype(str) + ' ' + 
+        df['Gender'].astype(str) + ' ' + 
+        df['Age'].astype(str) + ' ' + 
+        df['Duration'].astype(str)
+    )
+
+    df.pop('Gender')
+    df.pop('Age')
+    df.pop('Duration')
+    df.pop('Final Recommendation')
+
+    df.rename(
+        columns={
+            'Symptoms': 'inquery',
+            'Severity': 'severity'
+        },
+        inplace=True
+    )
+    return df
 
 def main():
     df = get_dataset()
-    model = get_model()
-    visualize_dataset(df)
+    df = preprocess(df)
+    # visualize_dataset(df)
+    labels = df['severity'].unique()
+
+    X = df['inquery']
+    y = df['severity']
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=42, stratify=y
+    )
+
+    model = get_model(len(labels))
+
+    trainer = Trainer(
+        model=model,
+    )
+
+    metrics = trainer.evaluate(test_dataset)
+    print(metrics)
 
 if __name__ == "__main__":
     main()

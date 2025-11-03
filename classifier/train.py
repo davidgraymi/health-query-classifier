@@ -5,6 +5,8 @@ import os
 import pandas as pd
 from visualize import visualize_dataset
 from sklearn.model_selection import train_test_split
+from datasets import Dataset
+import torch
 
 SYNAPSE_DATASET_URL = "https://figshare.com/ndownloader/files/57688621"
 MODEL_NAME = "sentence-transformers/embeddinggemma-300m-medical"
@@ -25,15 +27,23 @@ def get_model(num_classes: int):
             },
             default_prompt_name='classification',
         )
+        # Freeze weights of embedding model
         model_head = ClassifierHead(num_classes)
         model = SetFitModel(model_body, model_head)
+        model.freeze("body")
 
     except Exception as e:
         print(f"Error loading model {MODEL_NAME}: {e}")
         print("Please ensure you have an internet connection and the transformers library installed.")
         raise RuntimeError("Failed to load the embedding model.")
     
-    return model
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        print("MPS device not found. Using CPU.")
+        device = torch.device("cpu")
+    
+    return model.to(device)
 
 def get_dataset(base_data_dir="data") -> pd.DataFrame:
     """
@@ -74,6 +84,8 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
         df['Duration'].astype(str)
     )
 
+    df['Severity'] = df['Severity'].cat.codes
+
     df.pop('Gender')
     df.pop('Age')
     df.pop('Duration')
@@ -81,8 +93,8 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
 
     df.rename(
         columns={
-            'Symptoms': 'inquery',
-            'Severity': 'severity'
+            'Symptoms': 'text',
+            'Severity': 'label'
         },
         inplace=True
     )
@@ -91,24 +103,40 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
 def main():
     df = get_dataset()
     df = preprocess(df)
-    # visualize_dataset(df)
-    labels = df['severity'].unique()
+    labels = df['label'].unique()
+    model = get_model(len(labels))
 
-    X = df['inquery']
-    y = df['severity']
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42, stratify=y
+    # Preform 1000 sample evaluation
+    train, test = train_test_split(
+        df.sample(5000), test_size=0.3, random_state=42
     )
 
-    model = get_model(len(labels))
+    train = Dataset.from_pandas(train)
+    test = Dataset.from_pandas(test)
+
+    args = TrainingArguments(
+        output_dir="classifier/checkpoints",
+        # Explicitly set body_epochs to 0 to skip the contrastive fine-tuning stage
+        # This prevents the trainer from attempting to train the frozen 'body'.
+        # Set the classification head epochs higher, as this is the only training that will run
+        num_epochs=(0, 16),
+        eval_strategy='epoch',
+        eval_steps=500,
+    )
 
     trainer = Trainer(
         model=model,
+        train_dataset=train,
+        eval_dataset=test,
+        metric='accuracy',
+        column_mapping={"text": "text", "label": "label"},
+        args=args,
     )
 
-    metrics = trainer.evaluate(test_dataset)
-    print(metrics)
+    trainer.train()
+
+    metrics = trainer.evaluate(test)
+    print(f"After training: {metrics}")
 
 if __name__ == "__main__":
     main()

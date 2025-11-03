@@ -27,7 +27,8 @@ class ClassifierHead(nn.Module):
         x = self.fc1(embeddings)
         x = self.relu(x)
         x = self.dropout(x)
-        return self.classifier(x)
+        logits = self.classifier(x)
+        return {"logits": logits}
     
     def predict(self, embeddings: torch.Tensor) -> torch.Tensor:
         """
@@ -54,7 +55,6 @@ class ClassifierHead(nn.Module):
             torch.Tensor: Float probabilities with shape [num_inputs, num_classes].
         """
         # Apply the forward pass of the head to get logits
-        # Note: Must temporarily disable dropout for prediction
         self.eval()
         with torch.no_grad():
             x = self.fc1(embeddings)

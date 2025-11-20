@@ -6,13 +6,13 @@ class ClassifierHead(nn.Module):
     def __init__(self, num_classes, embedding_dim=768): # Embedding-Gemma-300M has a 768-dimensional output
         super().__init__()
 
-        self.linear_relu_stack = nn.Sequential(
+        self.linear_elu_stack = nn.Sequential(
             nn.Linear(embedding_dim, 512),
-            nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.ELU(),
+            nn.Dropout(0.5),
             nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.ELU(),
+            nn.Dropout(0.5),
             nn.Linear(512, num_classes),
         )
 
@@ -29,7 +29,7 @@ class ClassifierHead(nn.Module):
             Dict[str, torch.Tensor]: Dictionary with the 'logits' key.
         """
         embeddings = features['sentence_embedding']
-        logits = self.linear_relu_stack(embeddings)
+        logits = self.linear_elu_stack(embeddings)
         return {"logits": logits}
     
     def predict(self, embeddings: torch.Tensor) -> torch.Tensor:
@@ -59,7 +59,7 @@ class ClassifierHead(nn.Module):
         # Apply the forward pass of the head to get logits
         self.eval()
         with torch.no_grad():
-            logits = self.linear_relu_stack(embeddings)
+            logits = self.linear_elu_stack(embeddings)
             # Convert logits to probabilities using Softmax
             probabilities = self.softmax(logits)
         self.train() # Set back to training mode
@@ -75,4 +75,3 @@ class ClassifierHead(nn.Module):
         """
         # CrossEntropyLoss expects logits (raw scores) as input
         return nn.CrossEntropyLoss()
-

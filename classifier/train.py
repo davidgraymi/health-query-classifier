@@ -1,4 +1,4 @@
-from classifier.head import ClassifierHead
+from classifier.utils import CHECKPOINT_PATH, DATETIME_FORMAT, get_models, CATEGORIES, DEVICE
 
 from datetime import datetime
 import datasets as ds
@@ -6,47 +6,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
-from sentence_transformers import SentenceTransformer
 import torch
 from torch.utils.data import DataLoader
 
-MODEL_NAME = "sentence-transformers/embeddinggemma-300m-medical"
-
-device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-print(f"Using {device} device")
-
-def get_model(num_labels: int) -> tuple[SentenceTransformer, ClassifierHead]:
-    """
-    Loads embeddinggemma-300m-medical model and initializes the classification head.
-    """
-    try:
-        model_body = SentenceTransformer(
-            MODEL_NAME,
-            # prompts={
-            #     'retrieval (query)': 'task: search result | query: ',
-            #     'retrieval (document)': 'title: {title | "none"} | text: ',
-            #     'qa': 'task: question answering | query: ',
-            #     'fact verification': 'task: fact checking | query: ',
-            #     'classification': 'task: classification | query: ',
-            #     'clustering': 'task: clustering | query: ',
-            #     'semantic similarity': 'task: sentence similarity | query: ',
-            #     'code retrieval': 'task: code retrieval | query: '
-            # },
-            # default_prompt_name='classification',
-        )
-
-        model_head = ClassifierHead(num_labels)
-
-    except Exception as e:
-        print(f"Error loading model {MODEL_NAME}: {e}")
-        print("Please ensure you have an internet connection and the transformers library installed.")
-        raise RuntimeError("Failed to load the embedding model.")
-    
-    return model_body.to(device), model_head.to(device)
-
 def get_model_train_test():
     # Login using e.g. `huggingface-cli login` to access this dataset
-    cats = ds.ClassLabel(names=["medical", "insurance"])
 
     def add_static_label(row, column_name, label):
         row[column_name] = label
@@ -78,9 +42,9 @@ def get_model_train_test():
     validation = validation.select(unique_indices.tolist())
     
     # Get models
-    embedding_model, classifier = get_model(len(cats.names))
+    embedding_model, classifier = get_models()
     
-    return embedding_model, classifier, train, test, validation, cats.names
+    return embedding_model, classifier, train, test, validation, CATEGORIES
 
 def test_loop(dataloader, model, loss_fn):
     # Set the model to evaluation mode - important for batch normalization and dropout layers
@@ -107,8 +71,6 @@ def train_loop(dataloader, model, loss_fn, optimizer, batch_size = 64, epochs = 
     size = len(dataloader.dataset)
     total_loss = 0
     batch_losses = []
-    num_batches = len(dataloader)
-    avg_loss = 0
 
     # Set models to training mode
     model.train()
@@ -157,7 +119,7 @@ def label_to_int(embedding_model, label_names: list):
             tokenized_text = embedding_model.encode(
                 texts,
                 convert_to_tensor=True,
-                device=device
+                device=DEVICE
             ).clone().detach()
         
         # 3. Convert string labels to integers
@@ -165,21 +127,21 @@ def label_to_int(embedding_model, label_names: list):
         tokenized_labels = torch.tensor(int_labels, dtype=torch.long)
         
         # 4. Add the labels as a PyTorch tensor
-        tokenized_batch = {'sentence_embedding': tokenized_text.to(device), 'label': tokenized_labels.to(device)}
+        tokenized_batch = {'sentence_embedding': tokenized_text.to(DEVICE), 'label': tokenized_labels.to(DEVICE)}
         
         return tokenized_batch
     
-    return collate_fn, label_map
+    return collate_fn
 
 def train():
     start_datetime = datetime.now()
 
-    save_dir = f'classifier/checkpoints/{start_datetime.strftime('%Y%m%d_%H%M%S')}'
+    save_dir = f'{CHECKPOINT_PATH}/{start_datetime.strftime(DATETIME_FORMAT)}'
     os.makedirs(save_dir, exist_ok=True)
 
     embedding_model, model, train_ds, test_ds, validation_ds, labels = get_model_train_test()
     batch_size = 64
-    custom_collate_fn, label_map = label_to_int(embedding_model, labels)
+    custom_collate_fn = label_to_int(embedding_model, labels)
 
     train_dataloader = DataLoader(
         train_ds, 
@@ -201,15 +163,15 @@ def train():
     )
 
     loss_fn = model.get_loss_fn()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
     save_per_epoch = 1
-    epochs = 10
-    patience = 3
+    epochs = 1
+    patience = 1
     min_val_loss = float('inf')
     patience_counter = 0
     history = {
-        'train_loss_epoch': [], # Stores average loss per epoch
-        'train_loss_batch': [], # Stores loss for every batch
+        'train_loss_epoch': [],
+        'train_loss_batch': [],
         'validation_accuracy': [],
         'validation_loss_epoch': [],
         'test_accuracy': [],

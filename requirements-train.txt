@@ -1,6 +1,5 @@
-pandas
-scikit-learn
 matplotlib
 numpy
-torch
+pandas
 sentence-transformers
+torch

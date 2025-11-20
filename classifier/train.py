@@ -3,12 +3,11 @@ from visualize import visualize_dataset
 
 from datetime import datetime
 import datasets as ds
+import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pandas as pd
 from sentence_transformers import SentenceTransformer
-from setfit import Trainer, TrainingArguments
-from sklearn.model_selection import train_test_split
-import sys
 import torch
 from torch.utils.data import DataLoader
 
@@ -100,14 +99,17 @@ def test_loop(dataloader, model, loss_fn):
             test_loss += loss_fn(pred, batch['label']).item()
             correct += (pred.argmax(1) == batch['label']).type(torch.float).sum().item()
 
-    test_loss /= num_batches
-    correct /= size
-    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}")
+    avg_loss = test_loss / num_batches
+    accuracy = correct / size
+
+    return avg_loss, accuracy
 
 def train_loop(dataloader, model, loss_fn, optimizer, batch_size = 64, epochs = 10):
     size = len(dataloader.dataset)
     total_loss = 0
-    batch_losses = np.zeros(batch_size)
+    batch_losses = []
+    num_batches = len(dataloader)
+    avg_loss = 0
 
     # Set models to training mode
     model.train()
@@ -128,14 +130,15 @@ def train_loop(dataloader, model, loss_fn, optimizer, batch_size = 64, epochs = 
         loss.backward()
         optimizer.step()
 
-        batch_losses[iteration] = loss
-        total_loss += loss
+        cur_loss = loss.item()
+        batch_losses.append(cur_loss)
+        total_loss += cur_loss
 
         if iteration % 100 == 0:
             current = iteration * batch_size + len(batch['label'])
-            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+            print(f"loss: {cur_loss:>7f}  [{current:>5d}/{size:>5d}]")
         
-    return total_loss, np.array(batch_losses)
+    return total_loss, batch_losses
 
 def checkpoint(save_dir, checkpoint) -> str:
     return f"{save_dir}/ckpt-{checkpoint+1}.pth"
@@ -200,18 +203,30 @@ def train():
 
     loss_fn = model.get_loss_fn()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-    size = len(train_ds)
     save_per_epoch = 1
-    epochs = 3
-    loss_history = []
+    epochs = 10
+    patience = 3
+    min_val_loss = float('inf')
+    patience_counter = 0
+    history = {
+        'train_loss_epoch': [], # Stores average loss per epoch
+        'train_loss_batch': [], # Stores loss for every batch
+        'validation_accuracy': [],
+        'validation_loss_epoch': [],
+        'test_accuracy': [],
+        'test_loss': []
+    }
 
     for epoch in range(epochs):
         print(f"Epoch {epoch+1}:\n-------------------------------")
 
         # Train
-        avg_loss, batch_losses = train_loop(train_dataloader, model, loss_fn, optimizer)
-        loss_history.extend(batch_losses)
-        summary = f"Epoch {epoch+1} Loss: {avg_loss / size}"
+        total_loss, batch_losses = train_loop(train_dataloader, model, loss_fn, optimizer)
+        avg_epoch_loss = total_loss / len(train_dataloader)
+        history['train_loss_epoch'].append(avg_epoch_loss)
+        history['train_loss_batch'].extend(batch_losses)
+
+        summary = f"Epoch {epoch+1}:"
 
         # Save checkpoint
         if epoch % save_per_epoch == 0:
@@ -220,18 +235,54 @@ def train():
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
             }, checkpoint(save_dir, epoch))
-            summary += f" -- {checkpoint(save_dir, epoch)}"
-        
+            summary += f" -- {checkpoint(save_dir, epoch)}\n"
+
+            history_df = pd.DataFrame.from_dict(history, orient='index').transpose()
+            history_df.to_csv(f"{save_dir}/history.csv", index=False)
+        else:
+            summary += "\n"
+
+        # Validate
+        val_loss_avg, val_accuracy = test_loop(validation_dataloader, model, loss_fn)
+        history['validation_accuracy'].append(val_accuracy)
+        history['validation_loss_epoch'].append(val_loss_avg)
+
+        summary += f" - loss: {avg_epoch_loss}\n"
+        summary += f" - training loss: {avg_epoch_loss}\n"
+        summary += f" - validation loss: {val_loss_avg:>8f}\n"
+        summary += f" - validation accuracy: {(100*val_accuracy):>0.1f}%\n"
+
         print(summary)
-        
-        # Test
-        test_loop(validation_dataloader, model, loss_fn)
+
+        if val_loss_avg < min_val_loss:
+            min_val_loss = val_loss_avg
+            patience_counter = 0
+        else:
+            patience_counter += 1
+            if patience_counter >= patience:
+                print("Early stopping triggered due to no improvement in validation loss.")
+                break
 
     # Save the final model
     torch.save(model.state_dict(), f"{save_dir}/final.pth")
 
+    # Save loss history
+    history_df = pd.DataFrame.from_dict(history, orient='index').transpose()
+    history_df.to_csv(f"{save_dir}/history.csv", index=False)
+
     # Evaluate on test dataset
-    test_loop(test_dataloader, model, loss_fn)
+    test_loss_avg, test_accuracy = test_loop(test_dataloader, model, loss_fn)
+    history['test_accuracy'].append(test_accuracy)
+    history['test_loss'].append(test_loss_avg)
+    print(f"Test: Accuracy: {(100*test_accuracy):>0.1f}%, Avg loss: {test_loss_avg:>8f}")
+
+    # Plot training loss per batch
+    fig, ax = plt.subplots()
+    ax.plot(history['train_loss_batch'])
+    ax.set_title('Training Loss per Batch')
+    ax.set_xlabel('Batch')
+    ax.set_ylabel('Loss')
+    fig.savefig(f"{save_dir}/loss.png")
 
 if __name__ == "__main__":
     train()

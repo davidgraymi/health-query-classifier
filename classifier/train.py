@@ -84,7 +84,7 @@ def get_model_train_test():
     
     return embedding_model, classifier, train, test, validation, cats.names
 
-def test_loop(dataloader, model, embedding_model, loss_fn):
+def test_loop(dataloader, model, loss_fn):
     # Set the model to evaluation mode - important for batch normalization and dropout layers
     # Unnecessary in this situation but added for best practices
     model.eval()
@@ -104,9 +104,10 @@ def test_loop(dataloader, model, embedding_model, loss_fn):
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}")
 
-def train_loop(dataloader, model, embedding_model, loss_fn, optimizer, batch_size = 64, epochs = 5):
+def train_loop(dataloader, model, loss_fn, optimizer, batch_size = 64, epochs = 10):
     size = len(dataloader.dataset)
     total_loss = 0
+    batch_losses = np.zeros(batch_size)
 
     # Set models to training mode
     model.train()
@@ -127,14 +128,14 @@ def train_loop(dataloader, model, embedding_model, loss_fn, optimizer, batch_siz
         loss.backward()
         optimizer.step()
 
-        current_loss = loss.item()
-        total_loss += current_loss
+        batch_losses[iteration] = loss
+        total_loss += loss
 
         if iteration % 100 == 0:
             current = iteration * batch_size + len(batch['label'])
-            print(f"loss: {current_loss:>7f}  [{current:>5d}/{size:>5d}]")
+            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
         
-    return total_loss
+    return total_loss, np.array(batch_losses)
 
 def checkpoint(save_dir, checkpoint) -> str:
     return f"{save_dir}/ckpt-{checkpoint+1}.pth"
@@ -201,14 +202,16 @@ def train():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     size = len(train_ds)
     save_per_epoch = 1
-    epochs = 5
+    epochs = 3
+    loss_history = []
 
     for epoch in range(epochs):
-        print(f"Epoch {epoch+1}\n-------------------------------")
+        print(f"Epoch {epoch+1}:\n-------------------------------")
 
         # Train
-        total_loss = train_loop(train_dataloader, model, embedding_model, loss_fn, optimizer)
-        summary = f"Epoch {epoch+1} Loss: {total_loss / size}"
+        avg_loss, batch_losses = train_loop(train_dataloader, model, loss_fn, optimizer)
+        loss_history.extend(batch_losses)
+        summary = f"Epoch {epoch+1} Loss: {avg_loss / size}"
 
         # Save checkpoint
         if epoch % save_per_epoch == 0:
@@ -216,17 +219,19 @@ def train():
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-                'total_loss': total_loss
             }, checkpoint(save_dir, epoch))
             summary += f" -- {checkpoint(save_dir, epoch)}"
         
         print(summary)
         
         # Test
-        test_loop(test_dataloader, model, embedding_model, loss_fn)
+        test_loop(validation_dataloader, model, loss_fn)
 
-
+    # Save the final model
     torch.save(model.state_dict(), f"{save_dir}/final.pth")
+
+    # Evaluate on test dataset
+    test_loop(test_dataloader, model, loss_fn)
 
 if __name__ == "__main__":
     train()

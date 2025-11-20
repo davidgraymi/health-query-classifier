@@ -1,4 +1,4 @@
-from head import ClassifierHead
+from classifier.head import ClassifierHead
 
 from datetime import datetime
 import datasets as ds

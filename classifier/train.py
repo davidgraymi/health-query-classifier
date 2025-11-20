@@ -102,7 +102,7 @@ def test_loop(dataloader, model, embedding_model, loss_fn):
 
     test_loss /= num_batches
     correct /= size
-    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}")
 
 def train_loop(dataloader, model, embedding_model, loss_fn, optimizer, batch_size = 64, epochs = 5):
     size = len(dataloader.dataset)
@@ -111,7 +111,7 @@ def train_loop(dataloader, model, embedding_model, loss_fn, optimizer, batch_siz
     # Set models to training mode
     model.train()
 
-    for batch in dataloader:
+    for iteration, batch in enumerate(dataloader):
         # --- 1. Zero Gradients ---
         # Only zero gradients for the parameters you want to update (the classifier head)
         optimizer.zero_grad()
@@ -127,16 +127,17 @@ def train_loop(dataloader, model, embedding_model, loss_fn, optimizer, batch_siz
         loss.backward()
         optimizer.step()
 
-        if batch % 100 == 0:
-            loss, current = loss.item(), batch * batch_size + len(batch['label'])
-            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+        current_loss = loss.item()
+        total_loss += current_loss
+
+        if iteration % 100 == 0:
+            current = iteration * batch_size + len(batch['label'])
+            print(f"loss: {current_loss:>7f}  [{current:>5d}/{size:>5d}]")
         
-        total_loss += loss.item()
-    
     return total_loss
 
-def checkpoint(datetime_start, checkpoint) -> str:
-    return f"checkpoints/ckpt_{datetime_start.strftime('%Y%m%d_%H%M%S')}_epoch{checkpoint+1}.pth"
+def checkpoint(save_dir, checkpoint) -> str:
+    return f"{save_dir}/ckpt-{checkpoint+1}.pth"
 
 def label_to_int(embedding_model, label_names: list):
     """Creates a dictionary mapping label strings to their integer IDs."""
@@ -150,25 +151,28 @@ def label_to_int(embedding_model, label_names: list):
         # 2. Tokenize the texts using the embedding model's tokenizer
         # The tokenizer is attached to the embedding_model
         with torch.no_grad():
-            tokenized_text = embedding_model.encode(texts, convert_to_tensor=True, device=device).detach()
+            tokenized_text = embedding_model.encode(
+                texts,
+                convert_to_tensor=True,
+                device=device
+            ).clone().detach()
         
         # 3. Convert string labels to integers
         int_labels = [label_map[l] for l in labels]
         tokenized_labels = torch.tensor(int_labels, dtype=torch.long)
         
         # 4. Add the labels as a PyTorch tensor
-        tokenized_batch = {'sentence_embedding': tokenized_text, 'label': tokenized_labels}
-        
-        # # 5. Move inputs to the device
-        # tokenized_batch = {k: v.to(device) for k, v in tokenized_batch.items()}
+        tokenized_batch = {'sentence_embedding': tokenized_text.to(device), 'label': tokenized_labels.to(device)}
         
         return tokenized_batch
     
     return collate_fn, label_map
 
 def train():
-    os.makedirs('checkpoints', exist_ok=True)
-    os.makedirs('models', exist_ok=True)
+    start_datetime = datetime.now()
+
+    save_dir = f'classifier/checkpoints/{start_datetime.strftime('%Y%m%d_%H%M%S')}'
+    os.makedirs(save_dir, exist_ok=True)
 
     embedding_model, model, train_ds, test_ds, validation_ds, labels = get_model_train_test()
     batch_size = 64
@@ -184,28 +188,27 @@ def train():
         test_ds, 
         batch_size=batch_size, 
         shuffle=True,
-        # collate_fn=custom_collate_fn
+        collate_fn=custom_collate_fn
     )
     validation_dataloader = DataLoader(
         validation_ds, 
         batch_size=batch_size, 
         shuffle=True,
-        # collate_fn=custom_collate_fn
+        collate_fn=custom_collate_fn
     )
-
-    start_datetime = datetime.now()
 
     loss_fn = model.get_loss_fn()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     size = len(train_ds)
     save_per_epoch = 1
-    epochs = 10
+    epochs = 5
 
     for epoch in range(epochs):
         print(f"Epoch {epoch+1}\n-------------------------------")
 
         # Train
         total_loss = train_loop(train_dataloader, model, embedding_model, loss_fn, optimizer)
+        summary = f"Epoch {epoch+1} Loss: {total_loss / size}"
 
         # Save checkpoint
         if epoch % save_per_epoch == 0:
@@ -214,13 +217,16 @@ def train():
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'total_loss': total_loss
-            }, checkpoint(start_datetime, epoch))
+            }, checkpoint(save_dir, epoch))
+            summary += f" -- {checkpoint(save_dir, epoch)}"
+        
+        print(summary)
         
         # Test
         test_loop(test_dataloader, model, embedding_model, loss_fn)
-        print(f"Epoch {epoch+1} Loss: {total_loss / size}")
 
-    torch.save(model.state_dict(), f"models/classifier_weights_{start_datetime.strftime('%Y%m%d_%H%M%S')}.pth")
+
+    torch.save(model.state_dict(), f"{save_dir}/final.pth")
 
 if __name__ == "__main__":
     train()

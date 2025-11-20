@@ -5,11 +5,16 @@ import torch
 class ClassifierHead(nn.Module):
     def __init__(self, num_classes, embedding_dim=768): # Embedding-Gemma-300M has a 768-dimensional output
         super().__init__()
-        
-        self.fc1 = nn.Linear(embedding_dim, 256)
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.3)
-        self.classifier = nn.Linear(256, num_classes)
+
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear(28*28, 512),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(512, num_classes),
+        )
 
         self.softmax = nn.Softmax(dim=-1)
     
@@ -24,10 +29,7 @@ class ClassifierHead(nn.Module):
             Dict[str, torch.Tensor]: Dictionary with the 'logits' key.
         """
         embeddings = features['sentence_embedding']
-        x = self.fc1(embeddings)
-        x = self.relu(x)
-        x = self.dropout(x)
-        logits = self.classifier(x)
+        logits = self.linear_relu_stack(embeddings)
         return {"logits": logits}
     
     def predict(self, embeddings: torch.Tensor) -> torch.Tensor:
@@ -57,14 +59,12 @@ class ClassifierHead(nn.Module):
         # Apply the forward pass of the head to get logits
         self.eval()
         with torch.no_grad():
-            x = self.fc1(embeddings)
-            x = self.relu(x)
-            # DO NOT apply self.dropout() here, as we are in eval mode
-            logits = self.classifier(x)
+            logits = self.linear_relu_stack(embeddings)
+            # Convert logits to probabilities using Softmax
+            probabilities = self.softmax(logits)
         self.train() # Set back to training mode
         
-        # Convert logits to probabilities using Softmax
-        return self.softmax(logits)
+        return probabilities
 
     def get_loss_fn(self) -> nn.Module:
         """

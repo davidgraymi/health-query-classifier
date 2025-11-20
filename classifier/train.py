@@ -1,5 +1,4 @@
 from head import ClassifierHead
-from visualize import visualize_dataset
 
 from datetime import datetime
 import datasets as ds

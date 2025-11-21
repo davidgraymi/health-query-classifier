@@ -9,6 +9,21 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
+def even_split(prefix: str, target: int, splits: int, total: int) -> str:
+    result = ""
+    target_amount_per_split = int(target / splits)
+    total_amount_per_split = int(total / splits)
+
+    for i in range(splits):
+        left = total_amount_per_split*i
+        right = left + target_amount_per_split
+        result += f"{prefix}[{int(left)}:{int(right)}]"
+
+        if i != splits - 1:
+            result += "+"
+
+    return result
+
 def get_model_train_test():
     # Login using e.g. `huggingface-cli login` to access this dataset
 
@@ -17,29 +32,33 @@ def get_model_train_test():
         return row
 
     # Miriad
-    miriad = ds.load_dataset("tomaarsen/miriad-4.4M-split", split={"train":"train[:8000]", "test":"test[:2000]", "validation":"eval[:2000]"})
+    train_split = even_split("train", 50000, 100, 4470000)
+    miriad = ds.load_dataset("tomaarsen/miriad-4.4M-split", split={"train":train_split, "test": "test", "validation": "eval"})
     miriad = miriad.rename_column("question", "text")
     miriad = miriad.remove_columns("passage_text")
     miriad = miriad.map(add_static_label, fn_kwargs={"column_name": "label", "label": "medical"})
     # print(miriad)
 
     # Insurance
-    insurance = ds.load_dataset("deccan-ai/insuranceQA-v2", split={"train":"train[:8000]", "test":"test[:2000]", "validation":"validation[:2000]"})
+    train_split = even_split("train", 5000, 20, 21300)
+    insurance = ds.load_dataset("deccan-ai/insuranceQA-v2", split={"train":train_split, "test":"test", "validation":"validation"})
     insurance = insurance.rename_column("input", "text")
     insurance = insurance.remove_columns(["output"])
     insurance = insurance.map(add_static_label, fn_kwargs={"column_name": "label", "label": "insurance"})
     # print(insurance)
 
     # Interleave datasets (mix the datasets into one randomly)
-    train = ds.interleave_datasets([miriad["train"], insurance["train"]])
+    train = ds.interleave_datasets([miriad["train"], insurance["train"]], stopping_strategy="all_exhausted")
     _ , unique_indices = np.unique(train["text"], return_index=True, axis=0)
     train = train.select(unique_indices.tolist())
-    test = ds.interleave_datasets([miriad["test"], insurance["test"]])
+    test = ds.interleave_datasets([miriad["test"], insurance["test"]], stopping_strategy="all_exhausted")
     _ , unique_indices = np.unique(test["text"], return_index=True, axis=0)
     test = test.select(unique_indices.tolist())
-    validation = ds.interleave_datasets([miriad["validation"], insurance["validation"]])
+    validation = ds.interleave_datasets([miriad["validation"], insurance["validation"]], stopping_strategy="all_exhausted")
     _ , unique_indices = np.unique(validation["text"], return_index=True, axis=0)
     validation = validation.select(unique_indices.tolist())
+
+    print(f"train: {len(train)}, validation: {len(validation)}, test: {len(test)}")
     
     # Get models
     embedding_model, classifier = get_models()
@@ -231,12 +250,6 @@ def train():
     history_df = pd.DataFrame.from_dict(history, orient='index').transpose()
     history_df.to_csv(f"{save_dir}/history.csv", index=False)
 
-    # Evaluate on test dataset
-    test_loss_avg, test_accuracy = test_loop(test_dataloader, model, loss_fn)
-    history['test_accuracy'].append(test_accuracy)
-    history['test_loss'].append(test_loss_avg)
-    print(f"Test: Accuracy: {(100*test_accuracy):>0.1f}%, Avg loss: {test_loss_avg:>8f}")
-
     # Plot training loss per batch
     fig, ax = plt.subplots()
     ax.plot(history['train_loss_batch'])
@@ -244,6 +257,12 @@ def train():
     ax.set_xlabel('Batch')
     ax.set_ylabel('Loss')
     fig.savefig(f"{save_dir}/loss.png")
+
+    # Evaluate on test dataset
+    test_loss_avg, test_accuracy = test_loop(test_dataloader, model, loss_fn)
+    history['test_accuracy'].append(test_accuracy)
+    history['test_loss'].append(test_loss_avg)
+    print(f"Test: Accuracy: {(100*test_accuracy):>0.1f}%, Avg loss: {test_loss_avg:>8f}")
 
 if __name__ == "__main__":
     train()

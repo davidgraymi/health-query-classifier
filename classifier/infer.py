@@ -48,12 +48,15 @@ def test():
     latest = None
     path = ""
     for d in os.listdir(CHECKPOINT_PATH):
-        t = datetime.strptime(d, DATETIME_FORMAT)
-        if latest is None or t > latest:
-            latest = t
-            path = f"{CHECKPOINT_PATH}/{d}/final.pth"
-            print("Loading checkpoint from ", path)
+        try:
+            t = datetime.strptime(d, DATETIME_FORMAT)
+            if latest is None or t > latest:
+                latest = t
+                path = f"{CHECKPOINT_PATH}/{d}/final.pth"
+        except:
+            pass
 
+    print(f"Loading checkpoint from {path}")
     state_dict = torch.load(path, weights_only=True)
 
     embedding_model, classifier = get_models()
@@ -62,6 +65,7 @@ def test():
     queries = [
         "Hi! I'm having a really bad rash on my hands. I'm pretty sure it's my excema flairing up. Is there anythign stronger than aquaphor I can use on it?",
         "Hey is there any way I can get an appointment in the next month?",
+        "Hey is there any way I can get an appointment in the next month with a doctor?",
         "I'm traveling to South America soon. Do I need to get any vaccines before I go?",
         "I have this rash that popped up today.",
         "How can I make this hosptial bill go away?",

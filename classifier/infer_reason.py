@@ -56,8 +56,8 @@ def get_reason_models():
     return embedding_model.to(DEVICE), classifier_head.to(DEVICE)
 
 def predict_reason_query(
-    text: list[str], 
-    embedding_model: SentenceTransformer, 
+    text: list[str],
+    embedding_model: SentenceTransformer,
     classifier_head: ClassifierHead,
 ) -> dict:
     """
@@ -79,30 +79,68 @@ def predict_reason_query(
         probabilities = classifier_head.predict_proba(embeddings)
 
         # Get the predicted index and confidence
-        predicted_indices = torch.argmax(probabilities, dim=1).unsqueeze(1)
-        confidences = torch.gather(probabilities, dim=1, index=predicted_indices).squeeze().tolist()
+        predicted_indices = torch.argmax(probabilities, dim=1)
+        
+        # Convert tensors to Python types safely
+        if predicted_indices.dim() == 0:  # Single prediction
+            predicted_indices = [predicted_indices.item()]
+        else:
+            predicted_indices = predicted_indices.cpu().tolist()
+        
+        # Get confidences
+        confidences = []
+        for i, idx in enumerate(predicted_indices):
+            conf = probabilities[i][idx].item() if probabilities.dim() > 1 else probabilities[idx].item()
+            confidences.append(conf)
 
-        # Get the predicted label name
+        # Get the predicted label names
         predicted_labels = [REASON_CATEGORIES[i] for i in predicted_indices]
 
     return {
         'prediction': predicted_labels,
         'confidence': confidences,
-        'probabilities': probabilities.cpu().squeeze().tolist()
+        'probabilities': probabilities.cpu().tolist()
     }
 
 def predict_single_reason(query: str) -> dict:
     """Convenience function to predict a single reason query."""
-    embedding_model, classifier_head = get_reason_models()
-    result = predict_reason_query([query], embedding_model, classifier_head)
-    
-    # Format for single query
-    return {
-        'query': query,
-        'category': result['prediction'][0],
-        'confidence': result['confidence'] if isinstance(result['confidence'], float) else result['confidence'][0],
-        'probabilities': {REASON_CATEGORIES[i]: prob for i, prob in enumerate(result['probabilities'])}
-    }
+    try:
+        embedding_model, classifier_head = get_reason_models()
+        result = predict_reason_query([query], embedding_model, classifier_head)
+        
+        # Extract values safely
+        prediction = result['prediction'][0] if isinstance(result['prediction'], list) else str(result['prediction'])
+        confidence = result['confidence'] if isinstance(result['confidence'], float) else (result['confidence'][0] if isinstance(result['confidence'], list) else float(result['confidence']))
+        
+        # Handle probabilities - ensure it's a list
+        probabilities = result['probabilities']
+        if isinstance(probabilities, list) and len(probabilities) > 0:
+            if isinstance(probabilities[0], list):
+                probabilities = probabilities[0]
+        
+        # Create probability dictionary
+        prob_dict = {}
+        for i, category in REASON_CATEGORIES.items():
+            if i < len(probabilities):
+                prob_dict[category] = float(probabilities[i])
+            else:
+                prob_dict[category] = 0.0
+        
+        return {
+            'query': query,
+            'category': prediction,
+            'confidence': confidence,
+            'probabilities': prob_dict
+        }
+    except Exception as e:
+        # Return a default classification if the model fails
+        return {
+            'query': query,
+            'category': 'GENERAL_MEDICAL',
+            'confidence': 0.5,
+            'probabilities': {category: 1.0/len(REASON_CATEGORIES) for category in REASON_CATEGORIES.values()},
+            'error': str(e)
+        }
 
 def test_reason_classifier():
     """Test the reason classifier with sample queries."""

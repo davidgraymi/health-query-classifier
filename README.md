@@ -8,7 +8,7 @@
 
 # Healthcare Portal: Pre-visit Intake and Triaging
 
-Healthcare providers often seek efficient ways to gather comprehensive patient information before appointments. This demo illustrates how AI could be used in an application to streamline pre-visit information collection and utilization. 
+Healthcare providers often seek efficient ways to gather comprehensive patient information before appointments. This demo illustrates how AI could be used in an application to streamline pre-visit information collection and utilization.
 
 The demonstration first asks questions to gather pre-visit information.
 After it has identified and collected relevant information, the demo application generates a pre-visit report using collected information (and could be easily expanded to using EHR FHIR resources). This type of intelligent pre-visit report can help providers be more efficient and effective while also providing an improved experience for patients compared to traditional intake forms.
@@ -59,7 +59,6 @@ This demo uses the following models:
 
 * MedGemma 4b-it: https://huggingface.co/google/medgemma-4b-it
 
- 
 
 ## Caching
 This demo is functional, and results are persistently cached to reduce environmental impact.

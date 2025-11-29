@@ -5,6 +5,10 @@ This module contains shared constants and utilities for the healthcare
 classification system.
 """
 
+from classifier.head import ClassifierHead
+
+import datasets as ds
+from sentence_transformers import SentenceTransformer
 import torch
 from datetime import datetime
 from pathlib import Path
@@ -17,43 +21,46 @@ MODEL_NAME = "sentence-transformers/embeddinggemma-300m-medical"
 CHECKPOINT_PATH = "classifier/checkpoints"
 DATETIME_FORMAT = "%Y%m%d_%H%M%S"
 
-# Device configuration
-def get_device():
-    """Get the best available device for training/inference."""
+# Device configuration - use David's newer approach with fallback
+try:
+    DEVICE = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+except AttributeError:
+    # Fallback for older PyTorch versions
     if torch.backends.mps.is_available():
-        return torch.device("mps")
+        DEVICE = torch.device("mps")
     elif torch.cuda.is_available():
-        return torch.device("cuda")
+        DEVICE = torch.device("cuda")
     else:
-        return torch.device("cpu")
+        DEVICE = torch.device("cpu")
 
-DEVICE = get_device()
+print(f"Using {DEVICE} device")
 
-def get_models():
+def get_models(num_labels: int = len(CATEGORIES)) -> tuple[SentenceTransformer, ClassifierHead]:
     """
-    Get the embedding model and classifier head for inference.
+    Loads embeddinggemma-300m-medical model and initializes the classification head.
     
     Returns:
         tuple: (embedding_model, classifier_head)
     """
-    from sentence_transformers import SentenceTransformer
-    from head import ClassifierHead
+    try:
+        model_body = SentenceTransformer(
+            MODEL_NAME,
+            prompts={
+                'classification': 'task: classification | query: ',
+                'retrieval (query)': 'task: search result | query: ',
+                'retrieval (document)': 'title: {title | "none"} | text: ',
+            },
+            default_prompt_name='classification',
+        )
+
+        model_head = ClassifierHead(num_labels)
+
+    except Exception as e:
+        print(f"Error loading model {MODEL_NAME}: {e}")
+        print("Please ensure you have an internet connection and the transformers library installed.")
+        raise RuntimeError("Failed to load the embedding model.")
     
-    # Load embedding model
-    embedding_model = SentenceTransformer(
-        MODEL_NAME,
-        prompts={
-            'classification': 'task: classification | query: ',
-            'retrieval (query)': 'task: search result | query: ',
-            'retrieval (document)': 'title: {title | "none"} | text: ',
-        },
-        default_prompt_name='classification',
-    )
-    
-    # Load classifier head (for 2 categories: medical, insurance)
-    classifier_head = ClassifierHead(len(CATEGORIES))
-    
-    return embedding_model.to(DEVICE), classifier_head.to(DEVICE)
+    return model_body.to(DEVICE), model_head.to(DEVICE)
 
 def get_timestamp():
     """Get current timestamp in standard format."""

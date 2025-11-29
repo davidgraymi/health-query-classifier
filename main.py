@@ -10,9 +10,9 @@ def start_interview():
           "provider and staff.\n" +
           "************************************************************\n\n" +
           "One moment while we start your session...\n")
-    
+
     interviewer_instructions = interviewer_roleplay_instructions()
-    
+
     dialog = [
         {
             "role": "system",

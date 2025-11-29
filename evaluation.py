@@ -21,11 +21,11 @@ def evaluation_prompt(defacto_condition):
 Your role is to evaluate the helpfulness of a pre-visit report, which is based on a pre-visit patient interview and existing health records.
 The patient was de facto diagnosed condition: "{defacto_condition}" which was not known at the time of the interview.
 
-List the specific elements in the previsit report text that are helpful or necessary for the PCP to diagnose the de facto diagnosed condition: "{defacto_condition}". 
+List the specific elements in the previsit report text that are helpful or necessary for the PCP to diagnose the de facto diagnosed condition: "{defacto_condition}".
 
-This include pertinet positives or negatives. 
-List critical elements that are MISSING from the previsit report text that would have been helpful for the PCP to diagnose the de facto diagnosed condition. 
-This include pertinet positives or negatives that were missing from the report. 
+This include pertinet positives or negatives.
+List critical elements that are MISSING from the previsit report text that would have been helpful for the PCP to diagnose the de facto diagnosed condition.
+This include pertinet positives or negatives that were missing from the report.
 (keep in mind that the condition "{defacto_condition}" was not known at the time)
 
 The evaluation output should be in HTML format.
@@ -59,7 +59,7 @@ def evaluate_report(report, condition):
                     "text": f"Here is the report text:\n{report}"
                 }
             ]
-        },        
+        },
     ])
 
     # Remove any LLM "thinking" blocks (special tokens sometimes present in output)

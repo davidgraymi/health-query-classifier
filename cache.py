@@ -33,11 +33,11 @@ def create_cache_zip():
     base_name = os.path.join(temp_dir, "cache_archive") # A more descriptive name
     archive_path = base_name + ".zip"
     cache_directory = os.environ.get("CACHE_DIR", "cache")
-    
+
     if not os.path.isdir(cache_directory):
         logging.error(f"Cache directory not found at {cache_directory}")
         return None, f"Cache directory not found on server: {cache_directory}"
-    
+
     logging.info("Forcing a cache checkpoint for safe backup...")
     try:
         # Open and immediately close a connection.
@@ -45,7 +45,7 @@ def create_cache_zip():
         # into the main .db file, ensuring the on-disk files are consistent.
         with Cache(cache_directory) as temp_cache:
             temp_cache.close()
-        
+
         # Clean up temporary files before archiving.
         tmp_path = os.path.join(cache_directory, 'tmp')
         if os.path.isdir(tmp_path):
@@ -61,7 +61,7 @@ def create_cache_zip():
                     zipf.write(file_path, arcname)
         logging.info("Zip archive created successfully.")
         return archive_path, None
-        
+
     except Exception as e:
         logging.error(f"Error creating zip archive of cache directory: {e}", exc_info=True)
         return None, f"Error creating zip archive: {e}"

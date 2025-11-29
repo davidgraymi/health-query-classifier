@@ -18,7 +18,7 @@ import os
 import base64
 
 from medgemma import medgemma_generate
-   
+
 def interviewer_roleplay_instructions():
     # Returns detailed instructions for the LLM to roleplay as the interviewer/clinical assistant
 

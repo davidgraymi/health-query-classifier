@@ -3,42 +3,10 @@ import json
 import os
 import sys
 
+from dataclasses import asdict
 from pathlib import Path
-from retriever import Retriever
+from team.candidates import get_candidates
 
-
-def default_corpora_config():
-    return {
-        "medical_qa": {
-            "path": "data/corpora/medical_qa.jsonl",
-            "text_fields": ["question", "answer", "title"],
-        },
-        "miriad": {
-            "path": "data/corpora/miriad_text.jsonl",
-            "text_fields": ["text", "title"],
-        },
-        "pubmed": {
-            "path": "data/corpora/pubmed_abstracts.jsonl",
-            "text_fields": ["title", "text"],
-        },
-        "unidoc": {
-            "path": "data/corpora/unidoc_qa.jsonl",
-            "text_fields": ["question", "answer", "title"],
-        },
-    }
-
-def filter_config(cfg, include):
-    if not include:
-        return cfg
-    keep = set(x.strip() for x in include.split(",") if x.strip())
-    return {k: v for k, v in cfg.items() if k in keep}
-
-def check_files(cfg):
-    missing = [v["path"] for v in cfg.values() if not Path(v["path"]).exists()]
-    if missing:
-        print("✗ Missing corpora files:\n  - " + "\n  - ".join(missing))
-        print("Run:  python adapters/build_corpora.py")
-        sys.exit(1)
 
 def main():
     ap = argparse.ArgumentParser(
@@ -50,22 +18,16 @@ def main():
         "--rerank", action="store_true",
         help="Use cross-encoder reranker (slower, usually better)"
     )
-    ap.add_argument(
-        "--corpora",
-        type=str,
-        default="",
-        help="Comma-separated subset to search (e.g., 'medical_qa,pubmed'). "
-             "Leave blank to search all.",
-    )
     args = ap.parse_args()
 
-    cfg = default_corpora_config()
-    cfg = filter_config(cfg, args.corpora)
-    check_files(cfg)
+    hits = get_candidates(
+        query=args.query,
+        k_retrieve=args.k,
+        use_reranker=args.rerank,
+    )
 
-    retr = Retriever(corpora_config=cfg, use_reranker=args.rerank)
-    hits = retr.retrieve(args.query, k=args.k, for_ui=True)
-    print(json.dumps(hits, indent=2, ensure_ascii=False))
+    serializable = [asdict(hit) for hit in hits]
+    print(json.dumps(serializable, indent=2, ensure_ascii=False))
 
 if __name__ == "__main__":
     main()

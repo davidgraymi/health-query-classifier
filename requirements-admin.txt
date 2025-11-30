@@ -1,0 +1,9 @@
+# Requirements for Administrative Query Classifier
+pandas>=1.5.0
+scikit-learn>=1.0.0
+setfit>=1.0.0
+sentence-transformers>=2.0.0
+datasets>=2.0.0
+matplotlib>=3.5.0
+seaborn>=0.11.0
+numpy>=1.21.0

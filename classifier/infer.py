@@ -7,6 +7,28 @@ import pprint
 import torch
 from sentence_transformers import SentenceTransformer
 
+
+def classifier_init(checkpoint_path: str = CHECKPOINT_PATH) -> (SentenceTransformer, ClassifierHead):
+    latest = None
+    path = ""
+    for d in os.listdir(checkpoint_path):
+        try:
+            t = datetime.strptime(d, DATETIME_FORMAT)
+            if latest is None or t > latest:
+                latest = t
+                path = f"{CHECKPOINT_PATH}/{d}/final.pth"
+        except:
+            pass
+
+    print(f"Loading checkpoint from {path}")
+    state_dict = torch.load(path, weights_only=True)
+
+    embedding_model, classifier = get_models()
+    classifier.load_state_dict(state_dict)
+
+    return embedding_model, classifier
+
+
 def predict_query(
     text: list[str],
     embedding_model: SentenceTransformer,
@@ -45,22 +67,7 @@ def predict_query(
 
 
 def test():
-    latest = None
-    path = ""
-    for d in os.listdir(CHECKPOINT_PATH):
-        try:
-            t = datetime.strptime(d, DATETIME_FORMAT)
-            if latest is None or t > latest:
-                latest = t
-                path = f"{CHECKPOINT_PATH}/{d}/final.pth"
-        except:
-            pass
-
-    print(f"Loading checkpoint from {path}")
-    state_dict = torch.load(path, weights_only=True)
-
-    embedding_model, classifier = get_models()
-    classifier.load_state_dict(state_dict)
+    embedding_model, classifier = classifier_init()
 
     queries = [
         "Hi! I'm having a really bad rash on my hands. I'm pretty sure it's my excema flairing up. Is there anythign stronger than aquaphor I can use on it?",

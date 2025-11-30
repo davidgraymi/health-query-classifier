@@ -28,7 +28,7 @@ def build_lasseregin():
 
 # 2) MIRIAD-4.4M-split
 def build_miriad(sample_size=200_000):
-    ds = load_dataset("tomaarsen/miriad-4.4M-split", split="train")
+    ds = load_dataset("tomaarsen/miriad-4.4M-split", split="test")
     ds = ds.shuffle(seed=42).select(range(min(sample_size, len(ds))))
     rows = []
     for i, ex in enumerate(tqdm(ds, desc="miriad")):
@@ -44,7 +44,7 @@ def build_miriad(sample_size=200_000):
 
 # 3) PubMed abstracts DONT MATTER ANYMORE
 def build_pubmed(max_records=500_000):
-    ds = load_dataset("ncbi/pubmed", split="train")
+    ds = load_dataset("ncbi/pubmed", split="test")
     rows, n = [], 0
     for ex in tqdm(ds, desc="pubmed"):
         title = (ex.get("Title") or "").strip()
@@ -65,7 +65,7 @@ def build_pubmed(max_records=500_000):
 
 # 4) UniDoc-Bench (QA)
 def build_unidoc(max_items=1000):
-    ds = load_dataset("Salesforce/UniDoc-Bench", split="train")
+    ds = load_dataset("Salesforce/UniDoc-Bench", split="test")
     rows = []
     for i, ex in enumerate(tqdm(ds, desc="unidoc")):
         q = ex.get("question","") or ex.get("query","")

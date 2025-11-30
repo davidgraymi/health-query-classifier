@@ -10,7 +10,7 @@ def write_jsonl(path, rows):
         for r in rows:
             out.write(r)
 
-# 1) LasseRegin medical Q&A 
+# 1) LasseRegin medical Q&A
 def build_lasseregin():
     import urllib.request
     url = "https://raw.githubusercontent.com/LasseRegin/medical-question-answer-data/master/icliniqQAs.json"
@@ -26,7 +26,7 @@ def build_lasseregin():
         })
     write_jsonl(OUT / "medical_qa.jsonl", rows)
 
-# 2) MIRIAD-4.4M-split 
+# 2) MIRIAD-4.4M-split
 def build_miriad(sample_size=200_000):
     ds = load_dataset("tomaarsen/miriad-4.4M-split", split="train")
     ds = ds.shuffle(seed=42).select(range(min(sample_size, len(ds))))

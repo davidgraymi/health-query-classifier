@@ -8,8 +8,8 @@ import torch
 from sentence_transformers import SentenceTransformer
 
 def predict_query(
-    text: list[str], 
-    embedding_model: SentenceTransformer, 
+    text: list[str],
+    embedding_model: SentenceTransformer,
     classifier_head: ClassifierHead,
 ) -> dict:
     """
@@ -29,11 +29,11 @@ def predict_query(
 
         # Calculate probabilities and prediction
         probabilities = classifier_head.predict_proba(embeddings)
-        
+
         # Get the predicted index and confidence
         predicted_indices = torch.argmax(probabilities, dim=1).unsqueeze(1)
         confidences = torch.gather(probabilities, dim=1, index=predicted_indices).squeeze().tolist()
-        
+
         # Get the predicted label name
         predicted_labels = [CATEGORIES[i] for i in predicted_indices]
 

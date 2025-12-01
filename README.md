@@ -27,13 +27,15 @@ The system operates in two main stages to optimize patient care and provider eff
 
 ### Setup & Configuration
 
-1.  **Clone the repository:**
+1.  **Clone the repository**
+
     ```bash
     git clone https://github.com/davidgraymi/health-query-classifier.git
     cd health-query-classifier
     ```
 
-2.  **Configure environment variables:**
+2.  **Configure environment variables**
+
     This project uses an `env.list` file for configuration. Create this file in the root directory.
     ```ini
     # env.list
@@ -41,38 +43,24 @@ The system operates in two main stages to optimize patient care and provider eff
     ```
     *   **HF_TOKEN**: Access token can be generated via [huggingface](https://huggingface.co/settings/tokens). The token must have read permissions.
 
-3.  **Create a python virtual environment:**
+3.  **Create a python virtual environment**
+
     ```bash
     python3 -m venv .venv
     source .venv/bin/activate
     ```
 
-4.  **Install dependencies:**
+4.  **Install dependencies**
+
     ```bash
     pip install -r requirements.txt
     ```
 
 ### Data Setup
-To run the demo, you must populate the `data/corpora` directory with the required datasets.
 
-1.  **Create the directory:**
-    ```bash
-    mkdir -p data/corpora
-    ```
-
-2.  **Add Corpora Files:**
-    Place the following files in `data/corpora/`:
-    *   `medical_qa.jsonl`: Dataset of medical questions and answers.
-    *   `miriad_text.jsonl`: Dataset for relevant research/text.
-    *   `unidoc_qa.jsonl` (Optional): Additional QA dataset.
-
-    *Note: Ensure these files are formatted as JSONL (JSON Lines).*
-
-3.  **PubMed Data (Optional):**
-    To download and index PubMed data:
-    ```bash
-    python scripts/pubmed.py
-    ```
+```bash
+python3 -m adapters.build_corpora
+```
 
 ### Execution
 

@@ -4,8 +4,11 @@ import os
 import readline
 import sys
 
+from classifier.head import ClassifierHead
+from classifier.infer import classifier_init, predict_query
 from dataclasses import asdict
 from pathlib import Path
+from sentence_transformers import SentenceTransformer
 from team.candidates import get_candidates
 
 
@@ -14,7 +17,7 @@ EXIT_COMMANDS = ["exit", "quit"]
 PROMPT = "Query> "
 
 
-def main(k: int, use_reranker: bool) -> None:
+def main(k: int, use_reranker: bool, embedding_model: SentenceTransformer, classifier: ClassifierHead) -> None:
     print(f"(Ctrl-D or 'quit' to exit)\n")
 
     while True:
@@ -23,22 +26,35 @@ def main(k: int, use_reranker: bool) -> None:
             if not query or query.lower() in EXIT_COMMANDS:
                 break
 
-            hits = get_candidates(
-                query=query,
-                k_retrieve=k,
-                use_reranker=use_reranker,
+            classification = predict_query(
+                text=[query],
+                embedding_model=embedding_model,
+                classifier_head=classifier,
             )
 
-            print(f"Found {len(hits)} matching documents\n")
+            predictions = classification["prediction"]
 
-            if not hits:
-                print("No results found.\n")
+            if "medical" in predictions:
+                hits = get_candidates(
+                    query=query,
+                    k_retrieve=k,
+                    use_reranker=use_reranker,
+                )
+
+                print(f"Found {len(hits)} matching medical documents\n")
+
+                if not hits:
+                    print("No medical documents found.\n")
+
+                    continue
+
+                for i, hit in enumerate(hits, 1):
+                    serializable = asdict(hit)
+                    print(json.dumps(serializable, indent=2, ensure_ascii=False))
+            else:
+                print(f"TODO: handle queries of type {predictions}")
 
                 continue
-
-            for i, hit in enumerate(hits, 1):
-                serializable = asdict(hit)
-                print(json.dumps(serializable, indent=2, ensure_ascii=False))
 
         except EOFError:
             print("\nBye!")
@@ -62,4 +78,11 @@ if __name__ == "__main__":
     )
     args = ap.parse_args()
 
-    main(k=args.k, use_reranker=args.rerank)
+    embedding_model, classifier = classifier_init()
+
+    main(
+        k=args.k,
+        use_reranker=args.rerank,
+        embedding_model=embedding_model,
+        classifier=classifier,
+    )

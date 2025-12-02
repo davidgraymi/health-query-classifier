@@ -1,4 +1,4 @@
-import os, json, jsonlines, pathlib
+import json, jsonlines, pathlib
 from tqdm import tqdm
 from datasets import load_dataset
 

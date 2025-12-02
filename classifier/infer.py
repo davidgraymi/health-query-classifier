@@ -1,33 +1,20 @@
 from classifier.head import ClassifierHead
-from classifier.utils import CATEGORIES, CHECKPOINT_PATH, DATETIME_FORMAT, DEVICE, get_models
+from classifier.utils import CATEGORIES, CHECKPOINT_PATH, DEVICE, get_models, CLASSIFIER_NAME, get_latest_checkpoint
 
-from datetime import datetime
-import os
+import argparse
 import pprint
 import torch
 from sentence_transformers import SentenceTransformer
 
-
-def classifier_init(checkpoint_path: str = CHECKPOINT_PATH) -> (SentenceTransformer, ClassifierHead):
-    latest = None
-    path = ""
-    for d in os.listdir(checkpoint_path):
-        try:
-            t = datetime.strptime(d, DATETIME_FORMAT)
-            if latest is None or t > latest:
-                latest = t
-                path = f"{CHECKPOINT_PATH}/{d}/final.pth"
-        except:
-            pass
-
-    print(f"Loading checkpoint from {path}")
-    state_dict = torch.load(path, weights_only=True)
-
-    embedding_model, classifier = get_models()
-    classifier.load_state_dict(state_dict)
+def classifier_init(checkpoint_path: str | None = None, model_id: str | None = CLASSIFIER_NAME) -> (SentenceTransformer, ClassifierHead):
+    if checkpoint_path:
+        latest_checkpoint = get_latest_checkpoint(checkpoint_path)
+        print(f"Loading checkpoint from {latest_checkpoint}")
+        embedding_model, classifier = get_models(model_id=latest_checkpoint)
+    else:
+        embedding_model, classifier = get_models(model_id=model_id)
 
     return embedding_model, classifier
-
 
 def predict_query(
     text: list[str],
@@ -65,9 +52,8 @@ def predict_query(
         'probabilities': probabilities.cpu().squeeze().tolist()
     }
 
-
-def test():
-    embedding_model, classifier = classifier_init()
+def test(local: bool = False):
+    embedding_model, classifier = classifier_init(checkpoint_path=CHECKPOINT_PATH if local else None)
 
     queries = [
         "Hi! I'm having a really bad rash on my hands. I'm pretty sure it's my excema flairing up. Is there anythign stronger than aquaphor I can use on it?",
@@ -88,4 +74,13 @@ def test():
     pprint.pprint(pred, indent=4)
 
 if __name__ == "__main__":
-    test()
+    ap = argparse.ArgumentParser(
+        description="Inference on a classifier for triaging health queries"
+    )
+    ap.add_argument(
+        "--local", action="store_true",
+        help="Use local checkpoint"
+    )
+    args = ap.parse_args()
+
+    test(local=args.local)

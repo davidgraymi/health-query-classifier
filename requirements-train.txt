@@ -3,3 +3,4 @@ numpy
 pandas
 sentence-transformers
 torch
+huggingface_hub

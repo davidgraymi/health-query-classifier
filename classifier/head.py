@@ -1,9 +1,17 @@
 from typing import Dict
 from torch import nn
 import torch
+from huggingface_hub import PyTorchModelHubMixin
 
-class ClassifierHead(nn.Module):
-    def __init__(self, num_classes, embedding_dim=768): # Embedding-Gemma-300M has a 768-dimensional output
+class ClassifierHead(
+    nn.Module,
+    PyTorchModelHubMixin,
+    repo_url="https://huggingface.co/davidgray/health-query-triage",
+    pipeline_tag="text-classification",
+    library_name="PyTorch",
+    tags=["medical", "classification"],
+):
+    def __init__(self, num_classes: int, embedding_dim: int = 768): # Embedding-Gemma-300M has a 768-dimensional output
         super().__init__()
 
         self.linear_elu_stack = nn.Sequential(

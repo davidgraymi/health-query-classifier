@@ -9,9 +9,9 @@ def _default_corpora_config() -> Dict[str, dict]:
         "medical_qa": {"path":"data/corpora/medical_qa.jsonl",
                        "text_fields":["question","answer","title"]},
         "miriad":     {"path":"data/corpora/miriad_text.jsonl",
-                       "text_fields":["text","title"]},
+                       "text_fields":["question","answer","title"]},
         "unidoc":     {"path":"data/corpora/unidoc_qa.jsonl",
-                       "text_fields":["question","answer","title"]},  # optional
+                       "text_fields":["question","answer","title"]},
     }
 
 def _available(cfg: Dict[str, dict]) -> Dict[str, dict]:

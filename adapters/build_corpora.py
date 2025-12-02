@@ -1,29 +1,20 @@
 import json, jsonlines, pathlib
-import logging
 import concurrent.futures
 from tqdm import tqdm
 from datasets import load_dataset
-
-# Configure logger
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%H:%M:%S"
-)
-logger = logging.getLogger(__name__)
 
 OUT = pathlib.Path("data/corpora")
 OUT.mkdir(parents=True, exist_ok=True)
 
 def write_jsonl(path, rows):
-    logger.info(f"Writing {len(rows)} records to {path}")
+    print(f"Writing {len(rows)} records to {path}")
     with jsonlines.open(path, "w") as out:
         out.write_all(rows)
-    logger.info(f"Finished writing {path}")
+    print(f"Finished writing {path}")
 
 # 1) LasseRegin medical Q&A
 def build_lasseregin():
-    logger.info("Starting LasseRegin build...")
+    print("Starting LasseRegin build...")
     import urllib.request
     url = "https://raw.githubusercontent.com/LasseRegin/medical-question-answer-data/master/icliniqQAs.json"
     
@@ -31,7 +22,7 @@ def build_lasseregin():
         with urllib.request.urlopen(url) as response:
             data = json.loads(response.read().decode("utf-8"))
     except Exception as e:
-        logger.error(f"Failed to download LasseRegin data: {e}")
+        print(f"Failed to download LasseRegin data: {e}")
         return
 
     rows = []
@@ -44,16 +35,16 @@ def build_lasseregin():
             "source": "icliniq"
         })
     write_jsonl(OUT / "medical_qa.jsonl", rows)
-    logger.info("Completed LasseRegin build.")
+    print("Completed LasseRegin build.")
 
 # 2) MIRIAD-4.4M-split
 def build_miriad(sample_size=200_000):
-    logger.info(f"Starting MIRIAD build (sample_size={sample_size})...")
+    print(f"Starting MIRIAD build (sample_size={sample_size})...")
     try:
         ds = load_dataset("tomaarsen/miriad-4.4M-split", split="test", num_proc=4)
         ds = ds.shuffle(seed=42).select(range(min(sample_size, len(ds))))
     except Exception as e:
-        logger.error(f"Failed to load MIRIAD dataset: {e}")
+        print(f"Failed to load MIRIAD dataset: {e}")
         return
 
     rows = []
@@ -65,15 +56,15 @@ def build_miriad(sample_size=200_000):
             "answer": ex.get("passage_text", ""),
         })
     write_jsonl(OUT / "miriad_text.jsonl", rows)
-    logger.info("Completed MIRIAD build.")
+    print("Completed MIRIAD build.")
 
 # 3) PubMed abstracts
 def build_pubmed(max_records=500_000):
-    logger.info(f"Starting PubMed build (max_records={max_records})...")
+    print(f"Starting PubMed build (max_records={max_records})...")
     try:
         ds = load_dataset("ncbi/pubmed")
     except Exception as e:
-        logger.error(f"Failed to load PubMed dataset: {e}")
+        print(f"Failed to load PubMed dataset: {e}")
         return
 
     rows, n = [], 0
@@ -93,15 +84,15 @@ def build_pubmed(max_records=500_000):
         if n >= max_records:
             break
     write_jsonl(OUT / "pubmed_abstracts.jsonl", rows)
-    logger.info("Completed PubMed build.")
+    print("Completed PubMed build.")
 
 # 4) UniDoc-Bench (QA)
 def build_unidoc(max_items=1000):
-    logger.info(f"Starting UniDoc build (max_items={max_items})...")
+    print(f"Starting UniDoc build (max_items={max_items})...")
     try:
         ds = load_dataset("Salesforce/UniDoc-Bench", split="test")
     except Exception as e:
-        logger.error(f"Failed to load UniDoc dataset: {e}")
+        print(f"Failed to load UniDoc dataset: {e}")
         return
 
     rows = []
@@ -120,17 +111,17 @@ def build_unidoc(max_items=1000):
         if i+1 >= max_items:
             break
     write_jsonl(OUT / "unidoc_qa.jsonl", rows)
-    logger.info("Completed UniDoc build.")
+    print("Completed UniDoc build.")
 
 def main():
-    logger.info("Starting parallel corpora build...")
+    print("Starting parallel corpora build...")
     
     # Define tasks
     tasks = [
-        # (build_lasseregin, []),
+        (build_lasseregin, []),
         (build_miriad, [200_000]),
         # (build_pubmed, [500_000]),
-        # (build_unidoc, [1000])
+        (build_unidoc, [1000])
     ]
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
@@ -140,9 +131,9 @@ def main():
             try:
                 future.result()
             except Exception as e:
-                logger.error(f"A task failed: {e}")
+                print(f"A task failed: {e}")
 
-    logger.info("✅ All corpora built successfully in data/corpora/")
+    print("✅ All corpora built successfully in data/corpora/")
 
 if __name__ == "__main__":
     main()

@@ -1,17 +1,18 @@
 from classifier.head import ClassifierHead
 
-import datasets as ds
+import os
 from sentence_transformers import SentenceTransformer
 import torch
 
 MODEL_NAME = "sentence-transformers/embeddinggemma-300m-medical"
+CLASSIFIER_NAME = "davidgray/health-query-triage"
 CATEGORIES: list[str] = ["medical", "insurance"]
 CHECKPOINT_PATH = "classifier/checkpoints"
 DATETIME_FORMAT = '%Y%m%d_%H%M%S'
 DEVICE = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 print(f"Using {DEVICE} device")
 
-def get_models(num_labels: int = len(CATEGORIES)) -> tuple[SentenceTransformer, ClassifierHead]:
+def get_models(model_id: str | None = None, num_labels: int = len(CATEGORIES)) -> tuple[SentenceTransformer, ClassifierHead]:
     """
     Loads embeddinggemma-300m-medical model and initializes the classification head.
     """
@@ -31,7 +32,10 @@ def get_models(num_labels: int = len(CATEGORIES)) -> tuple[SentenceTransformer, 
             # default_prompt_name='classification',
         )
 
-        model_head = ClassifierHead(num_labels)
+        if model_id:
+            model_head = ClassifierHead.from_pretrained(model_id)
+        else:
+            model_head = ClassifierHead(num_labels)
 
     except Exception as e:
         print(f"Error loading model {MODEL_NAME}: {e}")
@@ -39,3 +43,6 @@ def get_models(num_labels: int = len(CATEGORIES)) -> tuple[SentenceTransformer, 
         raise RuntimeError("Failed to load the embedding model.")
     
     return model_body.to(DEVICE), model_head.to(DEVICE)
+
+def get_latest_checkpoint(checkpoint_path: str):
+    return os.path.join(checkpoint_path, sorted(os.listdir(checkpoint_path))[-1])

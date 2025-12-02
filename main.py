@@ -1,14 +1,10 @@
 import argparse
 import json
-import os
-import readline
-import sys
 
 from classifier.head import ClassifierHead
 from classifier.infer import classifier_init, predict_query
 from classifier.utils import CATEGORIES
 from dataclasses import asdict
-from pathlib import Path
 from sentence_transformers import SentenceTransformer
 from team.candidates import get_candidates
 

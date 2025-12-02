@@ -1,4 +1,7 @@
-from classifier.utils import CHECKPOINT_PATH, DATETIME_FORMAT, get_models, CATEGORIES, DEVICE
+from classifier.utils import CHECKPOINT_PATH, DATETIME_FORMAT, get_models, CATEGORIES, DEVICE, CLASSIFIER_NAME
+from classifier.config import HF_TOKEN
+from huggingface_hub import HfApi
+from jinja2 import Template
 
 from datetime import datetime
 import datasets as ds
@@ -120,8 +123,39 @@ def train_loop(dataloader, model, loss_fn, optimizer, batch_size = 64, epochs = 
         
     return total_loss, batch_losses
 
-def checkpoint(save_dir, checkpoint) -> str:
-    return f"{save_dir}/ckpt-{checkpoint+1}.pth"
+def generate_model_card(save_dir: str, accuracy: float, loss: float, epoch: int):
+    with open("classifier/modelcard_template.md", "r") as f:
+        template_content = f.read()
+    
+    template = Template(template_content)
+    
+    card_content = template.render(
+        model_id=CLASSIFIER_NAME,
+        model_summary="A simple medical query triage classifier.",
+        model_description="This model classifies queries into 'medical' or 'insurance' categories. It uses EmbeddingGemma-300M as a backbone.",
+        developers="David Gray",
+        model_type="Text Classification",
+        language="en",
+        license="mit",
+        base_model="sentence-transformers/embeddinggemma-300m-medical",
+        repo=f"https://huggingface.co/{CLASSIFIER_NAME}",
+        results_summary=f"Epoch: {epoch+1}\nValidation Accuracy: {accuracy*100:.2f}%\nValidation Loss: {loss:.4f}",
+        training_data="Miriad (medical) and InsuranceQA (insurance) datasets.",
+        testing_metrics="Accuracy, Loss",
+        results=f"Accuracy: {accuracy:.4f}, Loss: {loss:.4f}"
+    )
+    
+    with open(f"{save_dir}/README.md", "w") as f:
+        f.write(card_content)
+
+def push_model_card(save_dir: str, repo_id: str, token: str = None):
+    api = HfApi(token=token)
+    api.upload_file(
+        path_or_fileobj=f"{save_dir}/README.md",
+        path_in_repo="README.md",
+        repo_id=repo_id,
+        repo_type="model"
+    )
 
 def label_to_int(embedding_model, label_names: list):
     """Creates a dictionary mapping label strings to their integer IDs."""
@@ -152,7 +186,7 @@ def label_to_int(embedding_model, label_names: list):
     
     return collate_fn
 
-def train():
+def train(push_to_hub: bool = False):
     start_datetime = datetime.now()
 
     save_dir = f'{CHECKPOINT_PATH}/{start_datetime.strftime(DATETIME_FORMAT)}'
@@ -208,20 +242,6 @@ def train():
 
         summary = f"Epoch {epoch+1}:"
 
-        # Save checkpoint
-        if epoch % save_per_epoch == 0:
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-            }, checkpoint(save_dir, epoch))
-            summary += f" -- {checkpoint(save_dir, epoch)}\n"
-
-            history_df = pd.DataFrame.from_dict(history, orient='index').transpose()
-            history_df.to_csv(f"{save_dir}/history.csv", index=False)
-        else:
-            summary += "\n"
-
         # Validate
         val_loss_avg, val_accuracy = test_loop(validation_dataloader, model, loss_fn)
         history['validation_accuracy'].append(val_accuracy)
@@ -231,6 +251,26 @@ def train():
         summary += f" - training loss: {avg_epoch_loss}\n"
         summary += f" - validation loss: {val_loss_avg:>8f}\n"
         summary += f" - validation accuracy: {(100*val_accuracy):>0.1f}%\n"
+
+        # Save checkpoint
+        if epoch % save_per_epoch == 0:
+            # Save model
+            model.save_pretrained(save_dir)
+            
+            # Generate and push model card
+            # generate_model_card(save_dir, val_accuracy, val_loss_avg, epoch)
+            # push_model_card(save_dir, CLASSIFIER_NAME, token=HF_TOKEN)
+            
+            summary += f" -- {save_dir}\n"
+
+            history_df = pd.DataFrame.from_dict(history, orient='index').transpose()
+            history_df.to_csv(f"{save_dir}/history.csv", index=False)
+
+            # Push model to Hugging Face
+            if push_to_hub:
+                model.push_to_hub(CLASSIFIER_NAME, token=HF_TOKEN)
+        else:
+            summary += "\n"
 
         print(summary)
 
@@ -243,8 +283,17 @@ def train():
                 print("Early stopping triggered due to no improvement in validation loss.")
                 break
 
+    # Evaluate on test dataset
+    test_loss_avg, test_accuracy = test_loop(test_dataloader, model, loss_fn)
+    history['test_accuracy'].append(test_accuracy)
+    history['test_loss'].append(test_loss_avg)
+    print(f"Test: Accuracy: {(100*test_accuracy):>0.1f}%, Avg loss: {test_loss_avg:>8f}")
+
     # Save the final model
-    torch.save(model.state_dict(), f"{save_dir}/final.pth")
+    model.save_pretrained(save_dir)
+    
+    # generate_model_card(save_dir, test_accuracy, test_loss_avg, epochs-1)
+    # push_model_card(save_dir, CLASSIFIER_NAME, token=HF_TOKEN)
 
     # Save loss history
     history_df = pd.DataFrame.from_dict(history, orient='index').transpose()
@@ -258,11 +307,17 @@ def train():
     ax.set_ylabel('Loss')
     fig.savefig(f"{save_dir}/loss.png")
 
-    # Evaluate on test dataset
-    test_loss_avg, test_accuracy = test_loop(test_dataloader, model, loss_fn)
-    history['test_accuracy'].append(test_accuracy)
-    history['test_loss'].append(test_loss_avg)
-    print(f"Test: Accuracy: {(100*test_accuracy):>0.1f}%, Avg loss: {test_loss_avg:>8f}")
+    if push_to_hub:
+        model.push_to_hub(CLASSIFIER_NAME, token=HF_TOKEN)
 
 if __name__ == "__main__":
-    train()
+    ap = argparse.ArgumentParser(
+        description="Train a classifier for triaging health queries"
+    )
+    ap.add_argument(
+        "--push", action="store_true",
+        help="Push model to Hugging Face"
+    )
+    args = ap.parse_args()
+
+    train(push_to_hub=args.push)

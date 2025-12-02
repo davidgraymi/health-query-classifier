@@ -6,6 +6,7 @@ import sys
 
 from classifier.head import ClassifierHead
 from classifier.infer import classifier_init, predict_query
+from classifier.utils import CATEGORIES
 from dataclasses import asdict
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
@@ -14,11 +15,11 @@ from team.candidates import get_candidates
 
 EXIT_COMMANDS = ["exit", "quit"]
 
-PROMPT = "Query> "
+PROMPT = "\nQuery> "
 
 
 def main(k: int, use_reranker: bool, embedding_model: SentenceTransformer, classifier: ClassifierHead) -> None:
-    print(f"(Ctrl-D or 'quit' to exit)\n")
+    print(f"(Ctrl-D or 'quit' to exit)")
 
     while True:
         try:
@@ -33,6 +34,14 @@ def main(k: int, use_reranker: bool, embedding_model: SentenceTransformer, class
             )
 
             predictions = classification["prediction"]
+
+            print(f"\nTriaging query as {predictions[0]}")
+            print(f"\nConfidence:")
+            for i, prob in enumerate(classification['probabilities']):
+                cat = CATEGORIES[i]
+                percent = prob * 100
+                print(f"  {cat}: {percent:3.2f}%")
+            print()
 
             if "medical" in predictions:
                 hits = get_candidates(

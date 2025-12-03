@@ -1,4 +1,5 @@
 import json, jsonlines, pathlib
+import concurrent.futures
 from tqdm import tqdm
 from datasets import load_dataset
 
@@ -6,17 +7,26 @@ OUT = pathlib.Path("data/corpora")
 OUT.mkdir(parents=True, exist_ok=True)
 
 def write_jsonl(path, rows):
+    print(f"Writing {len(rows)} records to {path}")
     with jsonlines.open(path, "w") as out:
-        for r in rows:
-            out.write(r)
+        out.write_all(rows)
+    print(f"Finished writing {path}")
 
 # 1) LasseRegin medical Q&A
 def build_lasseregin():
+    print("Starting LasseRegin build...")
     import urllib.request
     url = "https://raw.githubusercontent.com/LasseRegin/medical-question-answer-data/master/icliniqQAs.json"
-    data = json.loads(urllib.request.urlopen(url).read().decode("utf-8"))
+    
+    try:
+        with urllib.request.urlopen(url) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except Exception as e:
+        print(f"Failed to download LasseRegin data: {e}")
+        return
+
     rows = []
-    for i, r in enumerate(data):
+    for i, r in enumerate(tqdm(data, desc="LasseRegin", leave=False)):
         rows.append({
             "id": f"icliniq:{i}",
             "title": r.get("title",""),
@@ -25,28 +35,42 @@ def build_lasseregin():
             "source": "icliniq"
         })
     write_jsonl(OUT / "medical_qa.jsonl", rows)
+    print("Completed LasseRegin build.")
 
 # 2) MIRIAD-4.4M-split
 def build_miriad(sample_size=200_000):
-    ds = load_dataset("tomaarsen/miriad-4.4M-split", split="test")
-    ds = ds.shuffle(seed=42).select(range(min(sample_size, len(ds))))
+    print(f"Starting MIRIAD build (sample_size={sample_size})...")
+    try:
+        ds = load_dataset("miriad/miriad-4.4M", num_proc=4, split="train")
+        ds = ds.shuffle(seed=42).select(range(min(sample_size, len(ds))))
+    except Exception as e:
+        print(f"Failed to load MIRIAD dataset: {e}")
+        return
+
     rows = []
-    for i, ex in enumerate(tqdm(ds, desc="miriad")):
-        text = ex.get("text") or ex.get("content") or ""
-        if not text:
-            continue
+    for i, ex in enumerate(tqdm(ds, desc="miriad", leave=False)):
         rows.append({
             "id": f"miriad:{i}",
-            "title": ex.get("title",""),
-            "text": text
+            "title": ex.get("paper_title",""),
+            "question": ex.get("question", ""),
+            "answer": ex.get("passage_text", ""),
+            "year": ex.get("year",""),
+            "specialty": ex.get("specialty",""),
         })
     write_jsonl(OUT / "miriad_text.jsonl", rows)
+    print("Completed MIRIAD build.")
 
-# 3) PubMed abstracts DONT MATTER ANYMORE
+# 3) PubMed abstracts
 def build_pubmed(max_records=500_000):
-    ds = load_dataset("ncbi/pubmed", split="test")
+    print(f"Starting PubMed build (max_records={max_records})...")
+    try:
+        ds = load_dataset("ncbi/pubmed")
+    except Exception as e:
+        print(f"Failed to load PubMed dataset: {e}")
+        return
+
     rows, n = [], 0
-    for ex in tqdm(ds, desc="pubmed"):
+    for ex in tqdm(ds, desc="pubmed", leave=False):
         title = (ex.get("Title") or "").strip()
         abstract = (ex.get("Abstract") or "").strip()
         if not (title or abstract):
@@ -62,12 +86,19 @@ def build_pubmed(max_records=500_000):
         if n >= max_records:
             break
     write_jsonl(OUT / "pubmed_abstracts.jsonl", rows)
+    print("Completed PubMed build.")
 
 # 4) UniDoc-Bench (QA)
 def build_unidoc(max_items=1000):
-    ds = load_dataset("Salesforce/UniDoc-Bench", split="test")
+    print(f"Starting UniDoc build (max_items={max_items})...")
+    try:
+        ds = load_dataset("Salesforce/UniDoc-Bench", split="test")
+    except Exception as e:
+        print(f"Failed to load UniDoc dataset: {e}")
+        return
+
     rows = []
-    for i, ex in enumerate(tqdm(ds, desc="unidoc")):
+    for i, ex in enumerate(tqdm(ds, desc="unidoc", leave=False)):
         q = ex.get("question","") or ex.get("query","")
         a = ex.get("answer","") or ""
         pdf = ex.get("pdf_path") or ex.get("document_path") or ""
@@ -82,10 +113,29 @@ def build_unidoc(max_items=1000):
         if i+1 >= max_items:
             break
     write_jsonl(OUT / "unidoc_qa.jsonl", rows)
+    print("Completed UniDoc build.")
+
+def main():
+    print("Starting parallel corpora build...")
+    
+    # Define tasks
+    tasks = [
+        (build_lasseregin, []),
+        (build_miriad, [200_000]),
+        # (build_pubmed, [500_000]),
+        (build_unidoc, [1000])
+    ]
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        futures = [executor.submit(func, *args) for func, args in tasks]
+        
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                print(f"A task failed: {e}")
+
+    print("✅ All corpora built successfully in data/corpora/")
 
 if __name__ == "__main__":
-    build_lasseregin()
-    build_miriad(sample_size=200_000)
-    #build_pubmed(max_records=500_000)
-    build_unidoc(max_items=1000)
-    print("✅ Wrote corpora to data/corpora/")
+    main()

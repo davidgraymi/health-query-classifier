@@ -247,7 +247,7 @@ def train_and_evaluate_reason_classifier():
     
     # Step 10: Next steps
     print(f"\n🚀 Next Steps:")
-    print("1. Run actual training with: python classifier/reason_classifier.py")
+    print("1. Run actual training with: python classifier/reason/reason_classifier.py")
     print("2. Test on new queries to validate performance")
     print("3. Integrate with David's binary classifier")
     print("4. Deploy for real-world testing")

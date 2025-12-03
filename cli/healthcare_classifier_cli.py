@@ -73,7 +73,7 @@ def classify_healthcare_query(query: str):
             print("-" * 40)
             
             try:
-                from infer_reason import predict_single_reason
+                from classifier.reason.infer_reason import predict_single_reason
                 
                 reason_result = predict_single_reason(query)
                 

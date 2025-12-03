@@ -8,7 +8,7 @@ classifier.
 
 from sentence_transformers import SentenceTransformer
 from setfit import SetFitModel, Trainer, TrainingArguments
-from head import ClassifierHead
+from ..head import ClassifierHead
 import os
 import pandas as pd
 from sklearn.model_selection import train_test_split

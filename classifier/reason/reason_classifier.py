@@ -25,7 +25,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 from datasets import Dataset
 import json
 
-from classifier.head import ClassifierHead
+from ..head import ClassifierHead
 
 # Healthcare reason categories based on real data analysis
 REASON_CATEGORIES = {

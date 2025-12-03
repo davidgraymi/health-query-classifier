@@ -5,7 +5,7 @@ This module provides inference for the reason classification system,
 separate from the medical/insurance classifier.
 """
 
-from head import ClassifierHead
+from ..head import ClassifierHead
 from datetime import datetime
 import os
 import pprint

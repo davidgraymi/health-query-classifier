@@ -24,7 +24,7 @@ def classify_single_query(query: str):
     try:
         # Import the reason inference module
         sys.path.append('classifier')
-        from infer_reason import predict_single_reason
+        from classifier.reason.infer_reason import predict_single_reason
         
         # Get prediction
         result = predict_single_reason(query)
@@ -68,7 +68,7 @@ def classify_batch_queries(queries_file: str, output_file: str = None):
         
         # Import the reason inference module
         sys.path.append('classifier')
-        from infer_reason import predict_single_reason
+        from classifier.reason.infer_reason import predict_single_reason
         
         results = []
         for i, query in enumerate(queries, 1):

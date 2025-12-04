@@ -119,7 +119,7 @@ def main():
     # Define tasks
     tasks = [
         (build_lasseregin, []),
-        (build_miriad, [200_000]),
+        (build_miriad, [1000]),
         # (build_pubmed, [500_000]),
         (build_unidoc, [1000])
     ]

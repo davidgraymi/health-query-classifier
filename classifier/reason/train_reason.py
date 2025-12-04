@@ -8,7 +8,15 @@ classifier.
 
 from sentence_transformers import SentenceTransformer
 from setfit import SetFitModel, Trainer, TrainingArguments
-from ..head import ClassifierHead
+import sys
+from pathlib import Path
+
+# Add project root to path for imports
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from classifier.head import ClassifierHead
 import os
 import pandas as pd
 from sklearn.model_selection import train_test_split

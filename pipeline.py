@@ -60,7 +60,7 @@ class HealthQueryPipeline:
                 "prediction": predictions[0],
                 "probabilities": {
                     cat: prob 
-                    for cat, prob in zip(settings.CATEGORIES, classification['probabilities'][0])
+                    for cat, prob in zip(settings.CATEGORIES, classification['probabilities'])
                 }
             },
             "retrieval": []
@@ -75,3 +75,9 @@ class HealthQueryPipeline:
             result["retrieval"] = [asdict(hit) for hit in hits]
         
         return result
+
+    def get_index_progress(self):
+        """Returns (current, total) of the underlying index."""
+        if not self.retriever:
+            return 0, 0
+        return self.retriever.get_index_progress()

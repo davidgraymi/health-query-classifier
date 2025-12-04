@@ -37,3 +37,7 @@ class Retriever:
             "score": s,
             "meta": d.meta
         } for d, s in results]
+
+    def get_index_progress(self):
+        """Returns (current, total) from dense index."""
+        return self.dense.get_progress()

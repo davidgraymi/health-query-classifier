@@ -16,6 +16,13 @@ def main(pipeline: HealthQueryPipeline, k: int) -> None:
             if not query or query.lower() in EXIT_COMMANDS:
                 break
 
+            # Show index status
+            curr, total = pipeline.get_index_progress()
+            if total > 0:
+                pct = int((curr / total) * 100)
+                if pct < 100:
+                    print(f"[Index: {pct}% loaded]")
+
             # Use the pipeline to get results
             result = pipeline.predict(query, k=k)
             

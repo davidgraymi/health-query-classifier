@@ -3,6 +3,7 @@ from classifier.config import HF_TOKEN
 from huggingface_hub import HfApi
 from jinja2 import Template
 
+import argparse
 from datetime import datetime
 import datasets as ds
 import matplotlib.pyplot as plt

@@ -8,7 +8,7 @@ except Exception:
 from .ingest import load_jsonl
 
 class Retriever:
-    def __init__(self, corpora_config, use_reranker=False):
+    def __init__(self, corpora_config, use_reranker=False, embedding_model=None):
         self.corpora = {}
         docs_all = []
         for name, cfg in corpora_config.items():
@@ -16,7 +16,7 @@ class Retriever:
             self.corpora[name] = docs
             docs_all.extend(docs)
         self.bm25 = BM25Index(docs_all)
-        self.dense = DenseIndex(docs_all)
+        self.dense = DenseIndex(docs_all, embedding_model=embedding_model)
         self.reranker = CrossEncoderReranker() if (use_reranker and CrossEncoderReranker) else None
 
     def retrieve(self, query, k=10, for_ui=True):

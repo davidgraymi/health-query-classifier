@@ -106,6 +106,20 @@ def predict_single_reason(query: str) -> dict:
     """Convenience function to predict a single reason query."""
     try:
         embedding_model, classifier_head = get_reason_models()
+        
+        # Try to load the most recent trained checkpoint
+        if os.path.exists(REASON_CHECKPOINT_PATH):
+            for d in os.listdir(REASON_CHECKPOINT_PATH):
+                if d.endswith('.pt'):
+                    checkpoint_path = f"{REASON_CHECKPOINT_PATH}/{d}"
+                    try:
+                        state_dict = torch.load(checkpoint_path, weights_only=True, map_location=DEVICE)
+                        classifier_head.load_state_dict(state_dict)
+                        print(f"Loaded trained weights from {checkpoint_path}")
+                        break
+                    except Exception as e:
+                        print(f"Could not load weights from {checkpoint_path}: {e}")
+        
         result = predict_reason_query([query], embedding_model, classifier_head)
         
         # Extract values safely

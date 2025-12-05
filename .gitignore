@@ -9,3 +9,4 @@ data/
 indexes/
 classifier/checkpoints/
 .DS_Store
+.cache

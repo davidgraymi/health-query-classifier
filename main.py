@@ -1,20 +1,13 @@
 import argparse
 import json
-
-from classifier.head import ClassifierHead
-from classifier.infer import classifier_init, predict_query
-from classifier.utils import CATEGORIES
 from dataclasses import asdict
-from sentence_transformers import SentenceTransformer
-from team.candidates import get_candidates
 
+from pipeline import HealthQueryPipeline
 
 EXIT_COMMANDS = ["exit", "quit"]
-
 PROMPT = "\nQuery> "
 
-
-def main(k: int, use_reranker: bool, embedding_model: SentenceTransformer, classifier: ClassifierHead) -> None:
+def main(pipeline: HealthQueryPipeline, k: int) -> None:
     print(f"(Ctrl-D or 'quit' to exit)")
 
     while True:
@@ -23,52 +16,47 @@ def main(k: int, use_reranker: bool, embedding_model: SentenceTransformer, class
             if not query or query.lower() in EXIT_COMMANDS:
                 break
 
-            classification = predict_query(
-                text=[query],
-                embedding_model=embedding_model,
-                classifier_head=classifier,
-            )
+            # Show index status
+            curr, total = pipeline.get_index_progress()
+            if total > 0:
+                pct = int((curr / total) * 100)
+                if pct < 100:
+                    print(f"[Index: {pct}% loaded]")
 
-            predictions = classification["prediction"]
-
-            print(f"\nTriaging query as {predictions[0]}")
+            # Use the pipeline to get results
+            result = pipeline.predict(query, k=k)
+            
+            classification = result["classification"]
+            prediction = classification["prediction"]
+            
+            print(f"\nTriaging query as {prediction}")
             print(f"\nConfidence:")
-            for i, prob in enumerate(classification['probabilities']):
-                cat = CATEGORIES[i]
+            for cat, prob in classification["probabilities"].items():
                 percent = prob * 100
                 print(f"  {cat}: {percent:3.2f}%")
             print()
 
-            if "medical" in predictions:
-                hits = get_candidates(
-                    query=query,
-                    k_retrieve=k,
-                    use_reranker=use_reranker,
-                )
-
+            if "medical" == prediction:
+                hits = result["retrieval"]
                 print(f"Found {len(hits)} matching medical documents\n")
 
                 if not hits:
                     print("No medical documents found.\n")
-
                     continue
 
                 for i, hit in enumerate(hits, 1):
-                    serializable = asdict(hit)
-                    print(json.dumps(serializable, indent=2, ensure_ascii=False))
+                    # hit is already a dict from the pipeline
+                    print(json.dumps(hit, indent=2, ensure_ascii=False))
             else:
-                print(f"TODO: handle queries of type {predictions}")
-
+                print(f"TODO: handle queries of type {prediction}")
                 continue
 
         except EOFError:
             print("\nBye!")
-
             break
 
         except KeyboardInterrupt:
             print("\nBye!")
-
             break
 
 
@@ -83,11 +71,8 @@ if __name__ == "__main__":
     )
     args = ap.parse_args()
 
-    embedding_model, classifier = classifier_init()
+    # Initialize pipeline
+    pipeline = HealthQueryPipeline(use_reranker=args.rerank)
+    pipeline.initialize()
 
-    main(
-        k=args.k,
-        use_reranker=args.rerank,
-        embedding_model=embedding_model,
-        classifier=classifier,
-    )
+    main(pipeline, k=args.k)

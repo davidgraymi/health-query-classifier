@@ -1,7 +1,0 @@
-### Primary concern:
-
-### History of Present Illness (HPI):
-
-### Relevant Medical History (from EHR):
-
-### Medications (from EHR and interview):

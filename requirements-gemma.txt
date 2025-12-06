@@ -1,3 +1,0 @@
-diskcache
-transformers
-torch

@@ -7,13 +7,14 @@ classification system.
 
 from classifier.head import ClassifierHead
 
-import datasets as ds
+import os
 from sentence_transformers import SentenceTransformer
 import torch
 from datetime import datetime
 from pathlib import Path
 
-# Categories for medical vs insurance classification
+MODEL_NAME = "sentence-transformers/embeddinggemma-300m-medical"
+CLASSIFIER_NAME = "davidgray/health-query-triage"
 CATEGORIES: list[str] = ["medical", "insurance"]
 
 # Model and training configuration
@@ -35,7 +36,7 @@ except AttributeError:
 
 print(f"Using {DEVICE} device")
 
-def get_models(num_labels: int = len(CATEGORIES)) -> tuple[SentenceTransformer, ClassifierHead]:
+def get_models(model_id: str | None = None, num_labels: int = len(CATEGORIES)) -> tuple[SentenceTransformer, ClassifierHead]:
     """
     Loads embeddinggemma-300m-medical model and initializes the classification head.
     
@@ -53,7 +54,10 @@ def get_models(num_labels: int = len(CATEGORIES)) -> tuple[SentenceTransformer, 
             default_prompt_name='classification',
         )
 
-        model_head = ClassifierHead(num_labels)
+        if model_id:
+            model_head = ClassifierHead.from_pretrained(model_id)
+        else:
+            model_head = ClassifierHead(num_labels)
 
     except Exception as e:
         print(f"Error loading model {MODEL_NAME}: {e}")
@@ -62,10 +66,5 @@ def get_models(num_labels: int = len(CATEGORIES)) -> tuple[SentenceTransformer, 
     
     return model_body.to(DEVICE), model_head.to(DEVICE)
 
-def get_timestamp():
-    """Get current timestamp in standard format."""
-    return datetime.now().strftime(DATETIME_FORMAT)
-
-def ensure_checkpoint_dir():
-    """Ensure checkpoint directory exists."""
-    Path(CHECKPOINT_PATH).mkdir(parents=True, exist_ok=True)
+def get_latest_checkpoint(checkpoint_path: str):
+    return os.path.join(checkpoint_path, sorted(os.listdir(checkpoint_path))[-1])

@@ -18,12 +18,16 @@ def _chunks(lst, n):
         yield lst[i:i+n]
 
 class DenseIndex:
-    def __init__(self, docs, model_name="sentence-transformers/all-MiniLM-L6-v2",
+    def __init__(self, docs, model_name="sentence-transformers/embeddinggemma-300m-medical",
                  batch_size=16):  
         self.docs = docs
 
-        torch.set_num_threads(1)
-        self.model = SentenceTransformer(model_name, device="cpu")
+        if torch.cuda.is_available():
+            self.model = SentenceTransformer(model_name, device="cuda")
+            batch_size = 64
+        else:
+            self.model = SentenceTransformer(model_name, device="cpu")
+            torch.set_num_threads(1)
 
         texts = [d.text for d in docs]
         embs = []

@@ -25,10 +25,10 @@ def main(pipeline: HealthQueryPipeline, k: int) -> None:
 
             # Use the pipeline to get results
             result = pipeline.predict(query, k=k)
-            
+
             classification = result["classification"]
             prediction = classification["prediction"]
-            
+
             print(f"\nTriaging query as {prediction}")
             print(f"\nConfidence:")
             for cat, prob in classification["probabilities"].items():

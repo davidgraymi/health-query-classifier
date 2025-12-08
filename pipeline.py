@@ -31,10 +31,10 @@ class HealthQueryPipeline:
         cfg = _available(settings.CORPORA_CONFIG)
         if not cfg:
             raise RuntimeError("No corpora files found in data/corpora. Build them first.")
-        
+
         self.retriever = Retriever(
-            corpora_config=cfg, 
-            use_reranker=self.use_reranker, 
+            corpora_config=cfg,
+            use_reranker=self.use_reranker,
             embedding_model=self.embedding_model
         )
         print("Retriever initialized.")
@@ -59,7 +59,7 @@ class HealthQueryPipeline:
             "classification": {
                 "prediction": predictions[0],
                 "probabilities": {
-                    cat: prob 
+                    cat: prob
                     for cat, prob in zip(settings.CATEGORIES, classification['probabilities'])
                 }
             },
@@ -73,7 +73,7 @@ class HealthQueryPipeline:
                 k_retrieve=k,
             )
             result["retrieval"] = [asdict(hit) for hit in hits]
-        
+
         return result
 
     def get_index_progress(self):

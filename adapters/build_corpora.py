@@ -17,7 +17,7 @@ def build_lasseregin():
     print("Starting LasseRegin build...")
     import urllib.request
     url = "https://raw.githubusercontent.com/LasseRegin/medical-question-answer-data/master/icliniqQAs.json"
-    
+
     try:
         with urllib.request.urlopen(url) as response:
             data = json.loads(response.read().decode("utf-8"))
@@ -115,7 +115,7 @@ def build_unidoc(max_items=1000):
 
 def main():
     print("Starting parallel corpora build...")
-    
+
     # Define tasks
     tasks = [
         (build_lasseregin, []),
@@ -126,7 +126,7 @@ def main():
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         futures = [executor.submit(func, *args) for func, args in tasks]
-        
+
         for future in concurrent.futures.as_completed(futures):
             try:
                 future.result()

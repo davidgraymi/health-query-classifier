@@ -9,14 +9,14 @@ class Settings(BaseSettings):
     MODEL_NAME: str = "sentence-transformers/embeddinggemma-300m-medical"
     CLASSIFIER_NAME: str = "davidgray/health-query-triage"
     CATEGORIES: List[str] = ["medical", "insurance"]
-    
+
     # Paths
     CHECKPOINT_PATH: str = "classifier/checkpoints"
     CACHE_DIR: str = ".cache/embeddings"
-    
+
     # Device
     DEVICE: str = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
-    
+
     # Corpora Configuration
     CORPORA_CONFIG: Dict[str, dict] = {
         "medical_qa": {"path": "data/corpora/medical_qa.jsonl",

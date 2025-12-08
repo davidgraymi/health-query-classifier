@@ -23,6 +23,8 @@ class Settings(BaseSettings):
                        "text_fields": ["question", "answer", "title"]},
         "miriad":     {"path": "data/corpora/miriad_text.jsonl",
                        "text_fields": ["question", "answer", "title"]},
+        "pubmed":     {"path": "data/corpora/pubmed.json",
+                       "text_fields": ["contents","title"]},
         "unidoc":     {"path": "data/corpora/unidoc_qa.jsonl",
                        "text_fields": ["question", "answer", "title"]},
     }

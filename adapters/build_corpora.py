@@ -8,6 +8,8 @@ from pubmed import download_pubmed
 OUT = pathlib.Path("data/corpora")
 OUT.mkdir(parents=True, exist_ok=True)
 
+PUBMED_ARTICLES_PER_XML_FILE = 30000
+
 def write_jsonl(path, rows):
     print(f"Writing {len(rows)} records to {path}")
     with jsonlines.open(path, "w") as out:

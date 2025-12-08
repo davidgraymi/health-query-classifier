@@ -2,6 +2,8 @@ import json, jsonlines, pathlib
 import concurrent.futures
 from tqdm import tqdm
 from datasets import load_dataset
+from math import ceil
+from pubmed import download_pubmed
 
 OUT = pathlib.Path("data/corpora")
 OUT.mkdir(parents=True, exist_ok=True)
@@ -17,7 +19,7 @@ def build_lasseregin():
     print("Starting LasseRegin build...")
     import urllib.request
     url = "https://raw.githubusercontent.com/LasseRegin/medical-question-answer-data/master/icliniqQAs.json"
-    
+
     try:
         with urllib.request.urlopen(url) as response:
             data = json.loads(response.read().decode("utf-8"))
@@ -62,30 +64,10 @@ def build_miriad(sample_size=200_000):
 
 # 3) PubMed abstracts
 def build_pubmed(max_records=500_000):
-    print(f"Starting PubMed build (max_records={max_records})...")
-    try:
-        ds = load_dataset("ncbi/pubmed")
-    except Exception as e:
-        print(f"Failed to load PubMed dataset: {e}")
-        return
+    num_files = int(ceil(max_records / PUBMED_ARTICLES_PER_XML_FILE))
+    print(f"Starting PubMed build (num_files={num_files}, max_records={max_records})...")
 
-    rows, n = [], 0
-    for ex in tqdm(ds, desc="pubmed", leave=False):
-        title = (ex.get("Title") or "").strip()
-        abstract = (ex.get("Abstract") or "").strip()
-        if not (title or abstract):
-            continue
-        rows.append({
-            "id": f"pubmed:{ex.get('PMID','')}",
-            "title": title,
-            "text": (title + "\n\n" + abstract).strip(),
-            "journal": ex.get("JournalTitle",""),
-            "year": ex.get("Year","")
-        })
-        n += 1
-        if n >= max_records:
-            break
-    write_jsonl(OUT / "pubmed_abstracts.jsonl", rows)
+    download_pubmed(OUT / "pubmed.jsonl", num_files)
     print("Completed PubMed build.")
 
 # 4) UniDoc-Bench (QA)

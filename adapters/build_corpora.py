@@ -78,7 +78,7 @@ def build_pubmed(max_records=500_000):
 def build_unidoc(max_items=1000):
     print(f"Starting UniDoc build (max_items={max_items})...")
     try:
-        ds = load_dataset("Salesforce/UniDoc-Bench", split="medical")
+        ds = load_dataset("Salesforce/UniDoc-Bench", split="healthcare")
     except Exception as e:
         print(f"Failed to load UniDoc dataset: {e}")
         return

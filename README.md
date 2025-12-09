@@ -19,6 +19,12 @@ The system operates in two main stages to optimize patient care and provider eff
 2.  **Research Retrieval**:
     If the query is classified as medical, the system searches through indexed medical databases (like PubMed and Miriad) to retrieve relevant research articles and Q/A pairs. This empowers the patient with trustworthy information and provides the doctor with context.
 
+### Training Script
+
+```bash
+python3 -m classifier.train
+```
+
 ## Running the System Locally
 
 ### Prerequisites
@@ -59,7 +65,7 @@ The system operates in two main stages to optimize patient care and provider eff
 ### Data Setup
 
 ```bash
-python3 -m adapters.build_corpora
+python3 adapters/build_corpora.py
 ```
 
 ### Execution

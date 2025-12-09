@@ -29,7 +29,7 @@ def _compute_cache_key(docs, model_name):
     return hashlib.md5(content.encode()).hexdigest()
 
 class DenseIndex:
-    def __init__(self, docs, model_name="sentence-transformers/all-MiniLM-L6-v2",
+    def __init__(self, docs, model_name="sentence-transformers/embeddinggemma-300m-medical",
                  batch_size=64, embedding_model=None, cache_dir=".cache/embeddings"):  
         self.docs = docs
         self.batch_size = batch_size

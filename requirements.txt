@@ -10,3 +10,5 @@ scipy
 scikit-learn
 torch
 huggingface_hub
+gradio
+streamlit

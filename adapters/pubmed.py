@@ -13,7 +13,7 @@ from urllib.request import urlopen, urlretrieve
 
 PUBMED_DATASET_BASE_URL = "https://ftp.ncbi.nlm.nih.gov/pubmed/baseline"
 
-PUBMED_FILE_LIMIT = 1
+PUBMED_FILE_LIMIT = 10
 
 
 def get_pubmed_dataset_size():

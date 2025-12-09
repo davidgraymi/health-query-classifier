@@ -46,6 +46,7 @@ def build_miriad(sample_size=200_000):
     print(f"Starting MIRIAD build (sample_size={sample_size})...")
     try:
         ds = load_dataset("miriad/miriad-4.4M", num_proc=4, split="train")
+
         ds = ds.shuffle(seed=42).select(range(min(sample_size, len(ds))))
     except Exception as e:
         print(f"Failed to load MIRIAD dataset: {e}")
@@ -60,6 +61,7 @@ def build_miriad(sample_size=200_000):
             "answer": ex.get("passage_text", ""),
             "year": ex.get("year",""),
             "specialty": ex.get("specialty",""),
+
         })
     write_jsonl(OUT / "miriad_text.jsonl", rows)
     print("Completed MIRIAD build.")
@@ -76,7 +78,7 @@ def build_pubmed(max_records=500_000):
 def build_unidoc(max_items=1000):
     print(f"Starting UniDoc build (max_items={max_items})...")
     try:
-        ds = load_dataset("Salesforce/UniDoc-Bench", split="test")
+        ds = load_dataset("Salesforce/UniDoc-Bench", split="medical")
     except Exception as e:
         print(f"Failed to load UniDoc dataset: {e}")
         return
@@ -101,18 +103,17 @@ def build_unidoc(max_items=1000):
 
 def main():
     print("Starting parallel corpora build...")
-    
     # Define tasks
     tasks = [
         (build_lasseregin, []),
-        (build_miriad, [200_000]),
-        # (build_pubmed, [500_000]),
+        (build_miriad, [1000]),
+        (build_pubmed, [500_000]),
+
         (build_unidoc, [1000])
     ]
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         futures = [executor.submit(func, *args) for func, args in tasks]
-        
         for future in concurrent.futures.as_completed(futures):
             try:
                 future.result()

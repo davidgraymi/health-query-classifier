@@ -9,9 +9,11 @@ def _default_corpora_config() -> Dict[str, dict]:
         "medical_qa": {"path":"data/corpora/medical_qa.jsonl",
                        "text_fields":["question","answer","title"]},
         "miriad":     {"path":"data/corpora/miriad_text.jsonl",
-                       "text_fields":["text","title"]},
+                       "text_fields":["question","answer","title"]},
+        "pubmed":     {"path":"data/corpora/pubmed.jsonl",
+                       "text_fields":["contents","title"]},
         "unidoc":     {"path":"data/corpora/unidoc_qa.jsonl",
-                       "text_fields":["question","answer","title"]},  # optional
+                       "text_fields":["question","answer","title"]},
     }
 
 def _available(cfg: Dict[str, dict]) -> Dict[str, dict]:
@@ -19,18 +21,13 @@ def _available(cfg: Dict[str, dict]) -> Dict[str, dict]:
 
 def get_candidates(
     query: str,
+    retriever: Retriever,
     k_retrieve: int = 50,
-    corpora_config: Dict[str, dict] | None = None,
-    use_reranker: bool = False,
 ) -> List[Candidate]:
     """
     Returns top-N fused candidates with component scores (bm25, dense, rrf).
     """
-    cfg = _available(corpora_config or _default_corpora_config())
-    if not cfg:
-        raise RuntimeError("No corpora files found in data/corpora. Build them first.")
-
-    r = Retriever(corpora_config=cfg, use_reranker=use_reranker)
+    r = retriever
 
     # get separate result lists (doc, score)
     bm = r.bm25.search(query, k=max(k_retrieve, 100))

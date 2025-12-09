@@ -7,11 +7,16 @@ classification system.
 
 from classifier.head import ClassifierHead
 
+from classifier.config import load_env
+
 import os
 from sentence_transformers import SentenceTransformer
 import torch
 from datetime import datetime
 from pathlib import Path
+
+# Load environment variables (including HF_TOKEN)
+load_env()
 
 MODEL_NAME = "sentence-transformers/embeddinggemma-300m-medical"
 CLASSIFIER_NAME = "davidgray/health-query-triage"

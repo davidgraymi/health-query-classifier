@@ -73,8 +73,5 @@ python3 adapters/build_corpora.py
 ```bash
 python3 main.py
 ```
-### Relauch UI
-
-```bash
-python app_retrieval_cached.py
-```
+### Open UI
+https://huggingface.co/spaces/taraky/Medical_Document_Retrieval

@@ -13,7 +13,6 @@ import torch
 from sentence_transformers import SentenceTransformer
 
 # Reason-specific configuration
-
 REASON_CATEGORIES = {
     0: "ROUTINE_CARE",
     1: "PAIN_CONDITIONS", 
